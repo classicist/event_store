@@ -1,4 +1,4 @@
-require 'event_store/sequel'
+require 'sequel'
 require 'event_store/client'
 require 'event_store/device'
 require 'event_store/event'
