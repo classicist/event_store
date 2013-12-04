@@ -1,5 +1,5 @@
 module EventStore
-  class Event < Sequel::Model
+  class Event < Sequel::Model(:event_store_events)
 
     dataset_module do
       def for_device(device_id)
