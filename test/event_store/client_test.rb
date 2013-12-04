@@ -62,4 +62,34 @@ describe EventStore::Client do
     end
   end
 
+  describe '#peek' do
+    subject { @es_client.new(1).peek }
+
+    it 'should return one event' do
+      assert_equal EventStore::Event, subject.class
+    end
+
+    it 'should return the last event in the event stream' do
+      skip "what qualifies as last event needs clarification"
+    end
+  end
+
+  describe '#append' do
+    it 'should raise if the expected_sequence_number is before the last_sequence_number' do
+      skip "needs clarification"
+    end
+
+    it 'create the events' do
+      skip "needs clarification"
+    end
+
+    it 'yield to the black after event creation' do
+      skip "needs clarification"
+    end
+
+    it 'is run in a transaction' do
+      skip "put in two events, one valid one invalid, and assert that neither are persisted"
+    end
+  end
+
 end
