@@ -6,7 +6,7 @@ module EventStore
     end
 
     def event_stream
-      EventStoreEvent.for_device(@id).order(:occurred_at)
+      Event.for_device(@id).order(:occurred_at)
     end
 
     def sequence(seq_nbr)
