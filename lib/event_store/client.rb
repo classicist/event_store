@@ -7,14 +7,14 @@ module EventStore
         raise ConcurrencyError, "Expected sequence number #{expected_sequence_number} does not occur after last sequence number #{last_sequence_number}"
       else
         DB.transaction do
-          events.each { |event| EventStoreEvent.create(event) }
+          events.each { |event| Event.create(event) }
           yield if block_given?
         end
       end
     end
 
     def event_stream(device_id)
-      Device.new(device_id).event_stream
+      Event.for_device(device_id)
     end
 
     def event_stream_from(device_id, sequence_number, max=nil)
