@@ -6,7 +6,6 @@ module EventStore
     if block_given?
       yield Sequel::Model
       require 'event_store/client'
-      require 'event_store/device'
       require 'event_store/event'
     else
       raise LocalJumpError
