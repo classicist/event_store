@@ -16,7 +16,7 @@ module EventStore
     def validate
       super
       @@required_attributes.each do |attribute_name|
-        errors.add(attribute_name, "can't be null") if send(attribute_name).nil?
+        errors.add(attribute_name, "is required") if send(attribute_name).to_s.strip.empty?
       end
     end
 
