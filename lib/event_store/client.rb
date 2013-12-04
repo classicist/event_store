@@ -1,5 +1,10 @@
 module EventStore
   class Client
+    attr_reader :device_id
+
+    def initialize device_id
+      @device_id = device_id
+    end
 
     def append(events, expected_sequence_number)
       # last_sequence_number =
@@ -13,16 +18,16 @@ module EventStore
       end
     end
 
-    def event_stream(device_id)
-      Event.for_device(device_id)
+    def event_stream
+      @event_stream ||= Event.for_device(device_id)
     end
 
-    def event_stream_from(device_id, sequence_number, max=nil)
-      event_stream(device_id).from_sequence(sequence_number).limit(max)
+    def event_stream_from(sequence_number, max=nil)
+      event_stream.from_sequence(sequence_number).limit(max)
     end
 
-    def peek(device_id)
-      event_stream(device_id).last
+    def peek
+      event_stream.last
     end
 
     class ConcurrencyError < Exception; end
