@@ -1,7 +1,6 @@
 require 'minitest/autorun'
 require 'minitest/pride'
 require 'sequel'
-require 'pry'
 
 DB = Sequel.sqlite
 
@@ -45,8 +44,7 @@ describe EventStore::Client do
 
     it 'should include all events for that device' do
       stream = @event_store.event_stream(1)
-      binding.pry
-      assert_equal DB.from(:event_store_events).where(:device_id => '1').count, stream.count
+      assert_equal 20, stream.count
     end
   end
 
