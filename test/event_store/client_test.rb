@@ -1,19 +1,19 @@
-require 'minitest/autorun'
-require 'minitest/pride'
-require 'sequel'
+require_relative '../minitest_helper'
+require 'event_store'
 
-DB = Sequel.sqlite
-
-DB.create_table!(:event_store_events) do
-  primary_key :id
-  String   :device_id
-  String   :name
-  Integer  :sequence_number
-  DateTime :occurred_at
-  bytea    :data
+EventStore.configure do |es|
+  es.db = test_db
 end
 
-require 'event_store'
+# run once setup
+[1, 2].each do |device_id|
+  20.times do
+    event = EventStore::Event.new :device_id => device_id, :sequence_number => rand(9)
+    event.stub :validate, true do
+      event.save
+    end
+  end
+end
 
 describe EventStore::Client do
   before do
@@ -21,17 +21,6 @@ describe EventStore::Client do
   end
 
   describe 'event streams' do
-    before do
-      [1, 2].each do |device_id|
-        20.times do
-          event = EventStore::Event.new :device_id => device_id, :sequence_number => rand(9)
-          event.stub :validate, true do
-            event.save
-          end
-        end
-      end
-    end
-
     it 'should be empty for devices without events' do
       stream = @event_store.event_stream(100)
       assert_equal 0, stream.count
