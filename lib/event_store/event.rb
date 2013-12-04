@@ -6,7 +6,7 @@ module EventStore
         where device_id: device_id.to_s
       end
 
-      def from_sequence_number(seq_nbr)
+      def from_sequence(seq_nbr)
         where sequence_number: seq_nbr.to_i
       end
     end

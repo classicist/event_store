@@ -17,9 +17,8 @@ module EventStore
       Device.new(device_id).event_stream
     end
 
-    def event_stream_from(device_id, sequence_number, max=0)
-      stream = Device.new(device_id).sequence(sequence_number)
-      max == 0 ? stream : stream.limit(max)
+    def event_stream_from(device_id, sequence_number, max=nil)
+      event_stream(device_id).from_sequence(sequence_number).limit(max)
     end
 
     def peek(device_id)
