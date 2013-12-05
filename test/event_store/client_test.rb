@@ -94,8 +94,11 @@ describe EventStore::Client do
       end
 
       it 'is run in a transaction' do
-        # event.fully_qualified_name = "duplicate"
-        # assert_raises  client.append([OpenStruct.new(:fully_qualified_name => "duplicate")], event.sequence_number + 1)
+        bad_event = @new_event.dup
+        bad_event.fully_qualified_name = nil
+        starting_count = EventStore::Event.count
+        assert_raises(Sequel::ValidationFailed) { @client.append([@new_event, bad_event], 1000) }
+        assert_equal starting_count, EventStore::Event.count
       end
     end
 
