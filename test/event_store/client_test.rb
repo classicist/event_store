@@ -72,6 +72,15 @@ describe EventStore::Client do
         event.save
         assert_raises(EventStore::ConcurrencyError) { client.append([OpenStruct.new(:fully_qualified_name => "duplicate")], event.sequence_number - 1) }
       end
+
+      it 'expected sequence number < last found sequence number; no type mismatch' do
+        client = EventStore::Client.new(1)
+        event = client.peek
+        event.fully_qualified_name = "duplicate"
+        event.save
+        new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "duplicate", :data => 1.to_s(2))
+        assert client.append([new_event], event.sequence_number + 1)
+      end
     end
 
     it 'create the events' do
