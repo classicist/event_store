@@ -64,44 +64,37 @@ describe EventStore::Client do
   end
 
   describe '#append' do
+    before do
+      @client = EventStore::Client.new(1)
+      @event = @client.peek
+      @new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
+    end
+
     describe "expected sequence number < last found sequence number" do
       describe 'type mismatch' do
         it 'should raise an error' do
-          client = EventStore::Client.new(1)
-          event = client.peek
-          event.fully_qualified_name = "duplicate"
-          event.save
-          assert_raises(EventStore::ConcurrencyError) { client.append([OpenStruct.new(:fully_qualified_name => "duplicate")], event.sequence_number - 1) }
+          @event.update(:fully_qualified_name => "duplicate")
+          @new_event.fully_qualified_name = "duplicate"
+          assert_raises(EventStore::ConcurrencyError) { @client.append([@new_event], @event.sequence_number - 1) }
         end
       end
 
       describe 'no prior events of type' do
         it 'should succeed' do
-          client = EventStore::Client.new(1)
-          event = client.peek
-          event.fully_qualified_name = "old"
-          event.save
-          new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
-          assert client.append([new_event], event.sequence_number - 1)
+          @event.update(:fully_qualified_name => "old")
+          assert @client.append([@new_event], @event.sequence_number - 1)
         end
       end
 
       describe 'with prior events of same type' do
         it 'should raise an error' do
-          client = EventStore::Client.new(1)
-          event = client.peek
-          event.fully_qualified_name = "new"
-          event.save
-          new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
-          assert_raises(EventStore::ConcurrencyError) { client.append([new_event], event.sequence_number - 1) }
+          @event.update(:fully_qualified_name => "new")
+          assert_raises(EventStore::ConcurrencyError) { @client.append([@new_event], @event.sequence_number - 1) }
         end
       end
 
       it 'is run in a transaction' do
-        # client = EventStore::Client.new(1)
-        # event = client.peek
         # event.fully_qualified_name = "duplicate"
-        # event.save
         # assert_raises  client.append([OpenStruct.new(:fully_qualified_name => "duplicate")], event.sequence_number + 1)
       end
     end
