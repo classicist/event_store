@@ -1,8 +1,9 @@
 require_relative '../minitest_helper'
+require 'ostruct'
 
 # run once setup
 ([1]*10 + [2]*10).shuffle.each do |device_id|
-  event = EventStore::Event.new :device_id => device_id
+  event = EventStore::Event.new :device_id => device_id, :occurred_at => DateTime.now, :data => 234532.to_s(2)
   event.stub :validate, true do
     event.save
   end
@@ -63,8 +64,14 @@ describe EventStore::Client do
   end
 
   describe '#append' do
-    it 'should raise if the expected_sequence_number is before the last_sequence_number' do
-      skip "needs clarification"
+    describe "exception handling" do
+      it 'expected sequence number < last found sequence number; type mismatch' do
+        client = EventStore::Client.new(1)
+        event = client.peek
+        event.fully_qualified_name = "duplicate"
+        event.save
+        assert_raises(EventStore::ConcurrencyError) { client.append([OpenStruct.new(:fully_qualified_name => "duplicate")], event.sequence_number - 1) }
+      end
     end
 
     it 'create the events' do
