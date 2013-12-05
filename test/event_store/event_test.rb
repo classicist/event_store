@@ -14,7 +14,7 @@ describe EventStore::Event do
     end
 
 
-    [:sequence_number, :occurred_at].each do |attr|
+    [:occurred_at].each do |attr|
       # throws error on "    "
       it "requires #{attr}" do
         refute subject.new(attr => "").valid?

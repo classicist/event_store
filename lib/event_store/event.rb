@@ -1,6 +1,8 @@
 module EventStore
   class Event < Sequel::Model(:event_store_events)
 
+    set_dataset order(:sequence_number)
+
     dataset_module do
       def for_device(device_id)
         where(:device_id => device_id.to_s)
@@ -11,7 +13,7 @@ module EventStore
       end
     end
 
-    @@required_attributes = %w{ device_id fully_qualified_name sequence_number occurred_at data }
+    @@required_attributes = %w{ device_id fully_qualified_name occurred_at data }
 
     def validate
       super

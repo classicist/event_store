@@ -29,7 +29,7 @@ module EventStore
     end
 
     def peek
-      event_stream.order(:sequence_number).last
+      event_stream.last
     end
   end
 end

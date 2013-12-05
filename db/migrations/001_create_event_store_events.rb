@@ -1,10 +1,9 @@
 Sequel.migration do
   change do
     create_table(:event_store_events) do
-      primary_key :id
+      primary_key :sequence_number
       String      :device_id
       String      :fully_qualified_name
-      Integer     :sequence_number
       DateTime    :occurred_at
       bytea       :data
     end

@@ -1,13 +1,11 @@
 require_relative '../minitest_helper'
 
 # run once setup
-sequence_number = 0
 ([1]*10 + [2]*10).shuffle.each do |device_id|
-  event = EventStore::Event.new :device_id => device_id, :sequence_number => sequence_number
+  event = EventStore::Event.new :device_id => device_id
   event.stub :validate, true do
     event.save
   end
-  sequence_number += 1
 end
 
 
