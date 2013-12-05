@@ -48,7 +48,8 @@ module EventStore
     end
 
     def connection_address
-      @connection_address ||= "#{login_info}#{host}:#{port || adapter[:defaults][:port]}/#{db_name}"
+      @connection_address ||=
+        "#{login_info}#{host}:#{port||adapter[:defaults][:port]}/#{db_name}"
     end
 
     def login_info
