@@ -46,9 +46,9 @@ module EventStore
     def create_events events
       Event.db.transaction do
         events.each { |event| Event.create(EventSerializer.new(event).serialize) }
-        yield if block_given?
-        true
       end
+      yield if block_given?
+      true
     end
 
   end

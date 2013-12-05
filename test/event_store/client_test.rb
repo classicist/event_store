@@ -92,21 +92,33 @@ describe EventStore::Client do
           assert_raises(EventStore::ConcurrencyError) { @client.append([@new_event], @event.sequence_number - 1) }
         end
       end
+    end
 
-      it 'is run in a transaction' do
-        bad_event = @new_event.dup
-        bad_event.fully_qualified_name = nil
+    describe 'transactional' do
+      before do
+        @bad_event = @new_event.dup
+        @bad_event.fully_qualified_name = nil
+      end
+
+      it 'should revert all append events if one fails' do
         starting_count = EventStore::Event.count
-        assert_raises(Sequel::ValidationFailed) { @client.append([@new_event, bad_event], 1000) }
+        assert_raises(Sequel::ValidationFailed) { @client.append([@new_event, @bad_event], 1000) }
         assert_equal starting_count, EventStore::Event.count
+      end
+
+      it 'does not yield to the block if it fails' do
+        x = 0
+        assert_raises(Sequel::ValidationFailed) { @client.append([@bad_event], 100) { x += 1 } }
+        assert_equal 0, x
+      end
+
+      it 'yield to the block after event creation' do
+        x = 0
+        @client.append([], 100) { x += 1 }
+        assert_equal 1, x
       end
     end
 
-    it 'yield to the block after event creation' do
-      x = 0
-      @client.append([], 100) { x += 1 }
-      assert_equal 1, x
-    end
   end
 
 end
