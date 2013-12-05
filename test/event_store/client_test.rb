@@ -87,13 +87,13 @@ describe EventStore::Client do
       end
 
       describe 'with prior events of same type' do
-        it 'should succeed' do
-          # client = EventStore::Client.new(1)
-          # event = client.peek
-          # event.fully_qualified_name = "old"
-          # event.save
-          # new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
-          # assert client.append([new_event], event.sequence_number - 1)
+        it 'should raise an error' do
+          client = EventStore::Client.new(1)
+          event = client.peek
+          event.fully_qualified_name = "new"
+          event.save
+          new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
+          assert_raises(EventStore::ConcurrencyError) { client.append([new_event], event.sequence_number - 1) }
         end
       end
 
