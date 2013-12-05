@@ -103,7 +103,9 @@ describe EventStore::Client do
     end
 
     it 'yield to the block after event creation' do
-      skip "needs clarification"
+      x = 0
+      @client.append([], 100) { x += 1 }
+      assert_equal 1, x
     end
   end
 

@@ -9,11 +9,11 @@ module EventStore
       @device_id = device_id
     end
 
-    def append events, expected_sequence_number
+    def append events, expected_sequence_number, &block
       if expected_sequence_number < peek.sequence_number
         check_for_concurrency_issues events, expected_sequence_number
       end
-      create_events events
+      create_events events, &block
     end
 
     def event_stream
