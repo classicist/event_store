@@ -6,6 +6,7 @@ module EventStore
 
   def self.configure &block
     config.instance_eval &block
+    config.set_db
     require 'event_store/client'
     require 'event_store/event'
   end
@@ -15,6 +16,6 @@ module EventStore
   end
 
   def self.db
-    config.db
+    config.get_db
   end
 end
