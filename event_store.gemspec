@@ -24,4 +24,5 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "sqlite3"
 
   spec.add_dependency "sequel", "~> 4.5"
+  spec.add_dependency "sequel-vertica"
 end
