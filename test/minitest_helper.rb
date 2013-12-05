@@ -9,12 +9,11 @@ def test_db
   Sequel.connect('sqlite://db/event_store_test.db')
 end
 
+Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'), 0)
 Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'))
 
 EventStore.configure do
   db :sqlite
+  credentials :db_name => 'db/event_store_test.db'
 end
-
-# after all tests teardown
-Minitest.after_run { Sequel::Migrator.apply(Sequel::Model.db, File.expand_path('db/migrations'), 0) }
 

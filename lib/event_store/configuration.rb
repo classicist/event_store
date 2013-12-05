@@ -3,29 +3,25 @@ require 'event_store/errors'
 
 module EventStore
   class Configuration
-    attr_reader :adapter, :get_db
+    attr_reader :adapter_options, :username, :password, :host, :port, :db_name
     def db adapter
-      @adapter = adapter_settings.fetch(adapter)
-      @connection_address = "db/event_store_test.db" if adapter == :sqlite
+      @adapter_options = adapter_settings.fetch(adapter)
       requires
     rescue KeyError
       raise InvalidAdapterError, "The adapter #{adapter} could not be found."
     end
 
     def requires
-      require adapter[:requires] if adapter[:requires]
+      require adapter_options[:requires] if adapter_options[:requires]
     end
 
-    def set_db
-      @get_db = Sequel.connect connection_url
+    def connect_to_db
+      Sequel.connect connection_url
     end
 
     def credentials credentials
       check_credentials credentials
       credentials.each do |k,v|
-        self.class.instance_eval do
-          attr_reader k
-        end
         instance_variable_set("@#{k}", v)
       end
     end
@@ -35,7 +31,7 @@ module EventStore
         begin
           credentials.fetch cred
         rescue KeyError
-          unless adapter[:defaults][cred]
+          unless adapter_options[:defaults][cred]
             raise MissingCredentialError, "#{cred} is required to configure your adapter."
           end
         end
@@ -43,12 +39,15 @@ module EventStore
     end
 
     def connection_url
-      "#{adapter[:protocol]}://#{connection_address}"
+      "#{adapter_options[:protocol]}://#{connection_address}"
     end
 
     def connection_address
-      @connection_address ||=
-        "#{login_info}#{host}:#{port||adapter[:defaults][:port]}/#{db_name}"
+      @connection_address ||= "#{login_info}#{location_info}#{db_name}"
+    end
+
+    def location_info
+      "#{host}:#{ port || adapter_options[:defaults][:port] }/" if host
     end
 
     def login_info
@@ -59,7 +58,10 @@ module EventStore
       {
         sqlite: {
           protocol: "sqlite",
-          defaults: {}
+          defaults: {
+            host: '',
+            port: ''
+          }
         },
         postgres: {
           protocol: "postgres",

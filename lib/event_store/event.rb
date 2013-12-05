@@ -1,17 +1,19 @@
 module EventStore
   class Event < Sequel::Model(:event_store_events)
 
+    set_dataset order(:sequence_number)
+
     dataset_module do
       def for_device(device_id)
-        where device_id: device_id.to_s
+        where(:device_id => device_id.to_s)
       end
 
-      def from_sequence(seq_nbr)
-        where sequence_number: seq_nbr.to_i
+      def starting_from_sequence_number(seq_nbr)
+        where { sequence_number >= seq_nbr.to_i }
       end
     end
 
-    @@required_attributes = %w{ device_id name sequence_number occurred_at data }
+    @@required_attributes = %w{ device_id fully_qualified_name occurred_at data }
 
     def validate
       super

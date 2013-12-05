@@ -1,16 +1,14 @@
 require_relative '../minitest_helper'
+require 'ostruct'
 
 # run once setup
-[1, 2].each do |device_id|
-  [2, 3].each do |sequence_number|
-    10.times do
-      event = EventStore::Event.new :device_id => device_id, :sequence_number => sequence_number
-      event.stub :validate, true do
-        event.save
-      end
-    end
+([1]*10 + [2]*10).shuffle.each do |device_id|
+  event = EventStore::Event.new :device_id => device_id, :occurred_at => DateTime.now, :data => 234532.to_s(2)
+  event.stub :validate, true do
+    event.save
   end
 end
+
 
 describe EventStore::Client do
   before { @es_client = EventStore::Client }
@@ -28,7 +26,7 @@ describe EventStore::Client do
 
     it 'should include all events for that device' do
       stream = @es_client.new(1).event_stream
-      assert_equal 20, stream.count
+      assert_equal 10, stream.count
     end
   end
 
@@ -36,14 +34,9 @@ describe EventStore::Client do
   describe 'event streams from sequence' do
     subject { @es_client.new(1) }
 
-    it 'should return only events from the specified sequence' do
+    it 'should return events starting at the specified sequence number and above' do
       stream = subject.event_stream_from(2)
-      assert stream.map(&:sequence_number).all?{ |sequence_number| sequence_number == 2 }, 'Fetched multiple sequence_ids in the event stream'
-    end
-
-    it 'by default it should return all events in the sequence' do
-      stream = subject.event_stream_from(2)
-      assert_equal 10, stream.count
+      assert stream.map(&:sequence_number).all?{ |sequence_number| sequence_number >= 2 }, 'Fetched sequence numbers below the specified sequence number'
     end
 
     it 'should respect the max, if specified' do
@@ -51,7 +44,7 @@ describe EventStore::Client do
       assert_equal 5, stream.count
     end
 
-    it 'should be empty for sequences that do not exist' do
+    it 'should be empty for sequences above the current highest sequence number' do
       stream = subject.event_stream_from(43)
       assert stream.empty?
     end
@@ -65,26 +58,67 @@ describe EventStore::Client do
     end
 
     it 'should return the last event in the event stream' do
-      skip "what qualifies as last event needs clarification"
+      last_event = Sequel::Model.db.from(:event_store_events).where(device_id: 1).order(:sequence_number).last
+      assert_equal last_event[:sequence_number], subject.sequence_number
     end
   end
 
   describe '#append' do
-    it 'should raise if the expected_sequence_number is before the last_sequence_number' do
-      skip "needs clarification"
+    before do
+      @client = EventStore::Client.new(1)
+      @event = @client.peek
+      @new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
     end
 
-    it 'create the events' do
-      skip "needs clarification"
+    describe "expected sequence number < last found sequence number" do
+      describe 'type mismatch' do
+        it 'should raise an error' do
+          @event.update(:fully_qualified_name => "duplicate")
+          @new_event.fully_qualified_name = "duplicate"
+          assert_raises(EventStore::ConcurrencyError) { @client.append([@new_event], @event.sequence_number - 1) }
+        end
+      end
+
+      describe 'no prior events of type' do
+        it 'should succeed' do
+          @event.update(:fully_qualified_name => "old")
+          assert @client.append([@new_event], @event.sequence_number - 1)
+        end
+      end
+
+      describe 'with prior events of same type' do
+        it 'should raise an error' do
+          @event.update(:fully_qualified_name => "new")
+          assert_raises(EventStore::ConcurrencyError) { @client.append([@new_event], @event.sequence_number - 1) }
+        end
+      end
     end
 
-    it 'yield to the black after event creation' do
-      skip "needs clarification"
+    describe 'transactional' do
+      before do
+        @bad_event = @new_event.dup
+        @bad_event.fully_qualified_name = nil
+      end
+
+      it 'should revert all append events if one fails' do
+        starting_count = EventStore::Event.count
+        assert_raises(Sequel::ValidationFailed) { @client.append([@new_event, @bad_event], 1000) }
+        assert_equal starting_count, EventStore::Event.count
+      end
+
+      it 'does not yield to the block if it fails' do
+        x = 0
+        assert_raises(Sequel::ValidationFailed) { @client.append([@bad_event], 100) { x += 1 } }
+        assert_equal 0, x
+      end
+
+      it 'yield to the block after event creation' do
+        x = 0
+        @client.append([], 100) { x += 1 }
+        assert_equal 1, x
+      end
     end
 
-    it 'is run in a transaction' do
-      skip "put in two events, one valid one invalid, and assert that neither are persisted"
-    end
   end
 
 end
