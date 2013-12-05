@@ -11,7 +11,7 @@ module EventStore
       end
     end
 
-    @@required_attributes = %w{ device_id name sequence_number occurred_at data }
+    @@required_attributes = %w{ device_id fully_qualified_name sequence_number occurred_at data }
 
     def validate
       super

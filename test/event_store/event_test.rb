@@ -5,7 +5,7 @@ describe EventStore::Event do
 
   describe "#validate" do
 
-    [:device_id, :name, :data].each do |attr|
+    [:device_id, :fully_qualified_name, :data].each do |attr|
       it "requires #{attr}" do
         refute subject.new(attr => nil).valid?
         refute subject.new(attr => "   ").valid?
