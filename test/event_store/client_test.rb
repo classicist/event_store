@@ -1,9 +1,4 @@
 require_relative '../minitest_helper'
-require 'event_store'
-
-EventStore.configure do |es|
-  es.db = test_db
-end
 
 # run once setup
 [1, 2].each do |device_id|

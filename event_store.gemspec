@@ -23,6 +23,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "minitest"
   spec.add_development_dependency "sqlite3"
 
-  spec.add_dependency "sequel", "~> 4.5"
+  spec.add_dependency "sequel", "~> 3.42"
   spec.add_dependency "sequel-vertica"
 end
