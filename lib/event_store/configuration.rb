@@ -32,7 +32,7 @@ module EventStore
     end
 
     def check_credentials credentials
-      %w{username password host port db_name}.map(&:to_sym).each do |cred|
+      %w{host port db_name}.map(&:to_sym).each do |cred|
         begin
           credentials.fetch cred
         rescue KeyError
@@ -46,20 +46,29 @@ module EventStore
     end
 
     def connection_address
-      @connection_address ||= "#{username}:#{password}@#{host}:#{port}/#{db_name}"
+      @connection_address ||= "#{login_info}#{host}:#{port}/#{db_name}"
+    end
+
+    def login_info
+      "#{username}:#{password}@" if username && password
     end
 
     def adapter_settings
       {
         sqlite: {
-          protocol: "sqlite"
+          protocol: "sqlite",
+          defaults: {}
         },
         postgres: {
-          protocol: "postgres"
+          protocol: "postgres",
+          defaults: {
+            port: 5432
+          }
         },
         vertica: {
           protocol: "vertica",
-          requires: "sequel-vertica"
+          requires: "sequel-vertica",
+          defaults: {}
         }
       }
     end
