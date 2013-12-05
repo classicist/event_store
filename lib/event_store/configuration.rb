@@ -3,12 +3,11 @@ require 'event_store/errors'
 
 module EventStore
   class Configuration
-    attr_accessor :adapter
-    attr_reader :get_db
+    attr_reader :adapter, :get_db
     def db adapter
-      self.adapter = adapter_settings.fetch(adapter)
-      requires
+      @adapter = adapter_settings.fetch(adapter)
       @connection_address = "db/event_store_test.db" if adapter == :sqlite
+      requires
     rescue KeyError
       raise InvalidAdapterError, "The adapter #{adapter} could not be found."
     end
