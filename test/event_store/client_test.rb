@@ -64,35 +64,50 @@ describe EventStore::Client do
   end
 
   describe '#append' do
-    describe "exception handling" do
-      it 'expected sequence number < last found sequence number; type mismatch' do
-        client = EventStore::Client.new(1)
-        event = client.peek
-        event.fully_qualified_name = "duplicate"
-        event.save
-        assert_raises(EventStore::ConcurrencyError) { client.append([OpenStruct.new(:fully_qualified_name => "duplicate")], event.sequence_number - 1) }
+    describe "expected sequence number < last found sequence number" do
+      describe 'type mismatch' do
+        it 'should raise an error' do
+          client = EventStore::Client.new(1)
+          event = client.peek
+          event.fully_qualified_name = "duplicate"
+          event.save
+          assert_raises(EventStore::ConcurrencyError) { client.append([OpenStruct.new(:fully_qualified_name => "duplicate")], event.sequence_number - 1) }
+        end
       end
 
-      it 'expected sequence number < last found sequence number; no type mismatch' do
-        client = EventStore::Client.new(1)
-        event = client.peek
-        event.fully_qualified_name = "duplicate"
-        event.save
-        new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "duplicate", :data => 1.to_s(2))
-        assert client.append([new_event], event.sequence_number + 1)
+      describe 'no prior events of type' do
+        it 'should succeed' do
+          client = EventStore::Client.new(1)
+          event = client.peek
+          event.fully_qualified_name = "old"
+          event.save
+          new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
+          assert client.append([new_event], event.sequence_number - 1)
+        end
       end
-    end
 
-    it 'create the events' do
-      skip "needs clarification"
+      describe 'with prior events of same type' do
+        it 'should succeed' do
+          # client = EventStore::Client.new(1)
+          # event = client.peek
+          # event.fully_qualified_name = "old"
+          # event.save
+          # new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
+          # assert client.append([new_event], event.sequence_number - 1)
+        end
+      end
+
+      it 'is run in a transaction' do
+        # client = EventStore::Client.new(1)
+        # event = client.peek
+        # event.fully_qualified_name = "duplicate"
+        # event.save
+        # assert_raises  client.append([OpenStruct.new(:fully_qualified_name => "duplicate")], event.sequence_number + 1)
+      end
     end
 
     it 'yield to the block after event creation' do
       skip "needs clarification"
-    end
-
-    it 'is run in a transaction' do
-      skip "put in two events, one valid one invalid, and assert that neither are persisted"
     end
   end
 

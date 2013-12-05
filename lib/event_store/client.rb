@@ -32,7 +32,8 @@ module EventStore
 
     def check_for_concurrency_issues events, expected_sequence_number
       events.each do |event|
-        if expected_sequence_number < last_event_of_type(event.fully_qualified_name).sequence_number
+        last_event = last_event_of_type(event.fully_qualified_name)
+        if last_event && expected_sequence_number < last_event.sequence_number
           raise ConcurrencyError, "Expected sequence number #{expected_sequence_number} does not occur after last sequence number"
         end
       end
