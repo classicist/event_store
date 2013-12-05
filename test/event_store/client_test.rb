@@ -1,4 +1,4 @@
-require 'minitest_helper'
+require_relative '../minitest_helper'
 
 # run once setup
 [1, 2].each do |device_id|

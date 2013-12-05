@@ -1,4 +1,4 @@
-require 'minitest_helper'
+require_relative '../minitest_helper'
 
 describe EventStore::Configuration do
   subject { EventStore::Configuration.new }

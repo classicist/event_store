@@ -1,4 +1,4 @@
-require 'minitest_helper'
+require_relative '../minitest_helper'
 
 describe EventStore::Event do
   subject { EventStore::Event }
