@@ -57,7 +57,8 @@ describe EventStore::Client do
     end
 
     it 'should return the last event in the event stream' do
-      skip "what qualifies as last event needs clarification"
+      last_event = Sequel::Model.db.from(:event_store_events).where(device_id: 1).order(:sequence_number).last
+      assert_equal last_event[:sequence_number], subject.sequence_number
     end
   end
 
@@ -70,7 +71,7 @@ describe EventStore::Client do
       skip "needs clarification"
     end
 
-    it 'yield to the black after event creation' do
+    it 'yield to the block after event creation' do
       skip "needs clarification"
     end
 
