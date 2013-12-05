@@ -14,23 +14,26 @@ describe EventStore::Configuration do
   describe '#adapter_settings' do
     it 'sqlite' do
       subject.instance_eval { db :sqlite }
-      assert_equal 'sqlite', subject.adapter[:protocol]
+      assert_equal 'sqlite', subject.adapter_options[:protocol]
     end
 
     it 'postgres' do
       subject.instance_eval { db :postgres }
-      assert_equal 'postgres', subject.adapter[:protocol]
+      assert_equal 'postgres', subject.adapter_options[:protocol]
     end
 
     it 'vertica' do
       subject.instance_eval { db :vertica }
-      assert_equal 'vertica', subject.adapter[:protocol]
+      assert_equal 'vertica', subject.adapter_options[:protocol]
     end
   end
 
   describe "#connection_address" do
     it 'sqlite' do
-      subject.instance_eval { db :sqlite }
+      subject.instance_eval {
+        db :sqlite
+        credentials db_name: "db/event_store_test.db"
+      }
       assert_equal 'sqlite://db/event_store_test.db', subject.connection_url
     end
 
