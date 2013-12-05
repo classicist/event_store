@@ -36,7 +36,9 @@ module EventStore
         begin
           credentials.fetch cred
         rescue KeyError
-          raise MissingCredentialError, "#{cred} is required to configure your adapter."
+          unless adapter[:defaults][cred]
+            raise MissingCredentialError, "#{cred} is required to configure your adapter."
+          end
         end
       end
     end
@@ -46,7 +48,7 @@ module EventStore
     end
 
     def connection_address
-      @connection_address ||= "#{login_info}#{host}:#{port}/#{db_name}"
+      @connection_address ||= "#{login_info}#{host}:#{port || adapter[:defaults][:port]}/#{db_name}"
     end
 
     def login_info

@@ -50,8 +50,12 @@ describe EventStore::Configuration do
       assert_equal "postgres://nexia:5432/test_db", subject.connection_url
     end
 
-    # it 'it defaults to port 5432' do
-    #   assert_equal "postgres://nexia:5432/test_db", subject.connection_url
-    # end
+    it 'it defaults to port 5432' do
+      subject.instance_eval {
+        db :postgres
+        credentials host: "nexia", db_name: "test_db"
+      }
+      assert_equal "postgres://nexia:5432/test_db", subject.connection_url
+    end
   end
 end
