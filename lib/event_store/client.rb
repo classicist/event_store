@@ -25,7 +25,7 @@ module EventStore
     end
 
     def event_stream_from(sequence_number, max=nil)
-      event_stream.from_sequence(sequence_number).limit(max)
+      event_stream.starting_from_sequence_number(sequence_number).limit(max)
     end
 
     def peek

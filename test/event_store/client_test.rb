@@ -1,16 +1,15 @@
 require_relative '../minitest_helper'
 
 # run once setup
-[1, 2].each do |device_id|
-  [2, 3].each do |sequence_number|
-    10.times do
-      event = EventStore::Event.new :device_id => device_id, :sequence_number => sequence_number
-      event.stub :validate, true do
-        event.save
-      end
-    end
+sequence_number = 0
+([1]*10 + [2]*10).shuffle.each do |device_id|
+  event = EventStore::Event.new :device_id => device_id, :sequence_number => sequence_number
+  event.stub :validate, true do
+    event.save
   end
+  sequence_number += 1
 end
+
 
 describe EventStore::Client do
   before { @es_client = EventStore::Client }
@@ -28,7 +27,7 @@ describe EventStore::Client do
 
     it 'should include all events for that device' do
       stream = @es_client.new(1).event_stream
-      assert_equal 20, stream.count
+      assert_equal 10, stream.count
     end
   end
 
@@ -36,14 +35,9 @@ describe EventStore::Client do
   describe 'event streams from sequence' do
     subject { @es_client.new(1) }
 
-    it 'should return only events from the specified sequence' do
+    it 'should return events starting at the specified sequence number and above' do
       stream = subject.event_stream_from(2)
-      assert stream.map(&:sequence_number).all?{ |sequence_number| sequence_number == 2 }, 'Fetched multiple sequence_ids in the event stream'
-    end
-
-    it 'by default it should return all events in the sequence' do
-      stream = subject.event_stream_from(2)
-      assert_equal 10, stream.count
+      assert stream.map(&:sequence_number).all?{ |sequence_number| sequence_number >= 2 }, 'Fetched sequence numbers below the specified sequence number'
     end
 
     it 'should respect the max, if specified' do
@@ -51,7 +45,7 @@ describe EventStore::Client do
       assert_equal 5, stream.count
     end
 
-    it 'should be empty for sequences that do not exist' do
+    it 'should be empty for sequences above the current highest sequence number' do
       stream = subject.event_stream_from(43)
       assert stream.empty?
     end
