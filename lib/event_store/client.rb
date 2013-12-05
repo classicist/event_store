@@ -1,3 +1,5 @@
+require 'event_store/errors'
+
 module EventStore
   class Client
     attr_reader :device_id
@@ -27,10 +29,7 @@ module EventStore
     end
 
     def peek
-      event_stream.last
+      event_stream.order(:sequence_number).last
     end
-
-    class ConcurrencyError < Exception; end
-
   end
 end
