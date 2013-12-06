@@ -4,12 +4,16 @@ module EventStore
     set_dataset order(:sequence_number)
 
     dataset_module do
-      def for_device(device_id)
-        where(:device_id => device_id.to_s)
+      def for_device device_id
+        where :device_id => device_id.to_s
       end
 
-      def starting_from_sequence_number(seq_nbr)
+      def starting_from_sequence_number seq_nbr
         where { sequence_number >= seq_nbr.to_i }
+      end
+
+      def of_type type
+        where :fully_qualified_name => type
       end
     end
 

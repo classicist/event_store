@@ -67,7 +67,7 @@ describe EventStore::Client do
     before do
       @client = EventStore::Client.new(1)
       @event = @client.peek
-      @new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => "abc", :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
+      @new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => 1, :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
     end
 
     describe "expected sequence number < last found sequence number" do
@@ -80,9 +80,16 @@ describe EventStore::Client do
       end
 
       describe 'no prior events of type' do
-        it 'should succeed' do
+        before do
           @event.update(:fully_qualified_name => "old")
+        end
+
+        it 'should succeed' do
           assert @client.append([@new_event], @event.sequence_number - 1)
+        end
+
+        it 'should succeed with multiple events of the same type' do
+          assert @client.append([@new_event, @new_event], @event.sequence_number - 1)
         end
       end
 
