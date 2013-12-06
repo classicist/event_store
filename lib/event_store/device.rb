@@ -1,7 +1,7 @@
 module EventStore
   class Device
 
-    def initialize(id)
+    def initialize id
       @id = id
     end
 
