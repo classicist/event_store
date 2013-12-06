@@ -11,6 +11,10 @@ module EventStore
       def starting_from_sequence_number(seq_nbr)
         where { sequence_number >= seq_nbr.to_i }
       end
+
+      def of_type(type)
+        where(:fully_qualified_name => type)
+      end
     end
 
     @@required_attributes = %w{ device_id fully_qualified_name occurred_at data }

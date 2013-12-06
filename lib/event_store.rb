@@ -1,6 +1,7 @@
 require 'event_store/version'
 require 'event_store/configuration'
-require 'event_store/event_serializer'
+require 'event_store/event_appender'
+require 'event_store/device'
 
 module EventStore
   attr_reader :config
