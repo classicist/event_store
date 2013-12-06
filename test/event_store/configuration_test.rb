@@ -1,7 +1,4 @@
-require 'minitest/autorun'
-require 'minitest/pride'
-require 'minitest'
-require 'event_store'
+require_relative '../minitest_helper'
 
 describe EventStore::Configuration do
   subject { EventStore::Configuration.new }
