@@ -80,9 +80,16 @@ describe EventStore::Client do
       end
 
       describe 'no prior events of type' do
-        it 'should succeed' do
+        before do
           @event.update(:fully_qualified_name => "old")
+        end
+
+        it 'should succeed' do
           assert @client.append([@new_event], @event.sequence_number - 1)
+        end
+
+        it 'should succeed with multiple events of the same type' do
+          assert @client.append([@new_event, @new_event], @event.sequence_number - 1)
         end
       end
 
