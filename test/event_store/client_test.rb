@@ -67,7 +67,7 @@ describe EventStore::Client do
     before do
       @client = EventStore::Client.new(1)
       @event = @client.peek
-      @new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => 1, :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
+      @new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => '1', :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
     end
 
     describe "expected sequence number < last found sequence number" do
