@@ -7,12 +7,12 @@ describe EventStore::Configuration do
     config.instance_eval {
       username "username"
       password "password"
-      host "host"
-      port "port"
-      db_name "db_name"
+      host     "host"
+      port      5555
+      db_name  "db_name"
     }
     assert_equal "username", config.username
-    assert_equal "port", config.port
+    assert_equal  5555, config.port
     assert_equal "password", config.password
     assert_equal "host", config.host
     assert_equal "db_name", config.db_name
@@ -38,7 +38,7 @@ describe EventStore::Configuration do
   describe "#connection_address" do
     it 'sqlite' do
       subject.instance_eval {
-        db :sqlite
+        db      :sqlite
         db_name "db/event_store_test.db"
       }
       assert_equal 'sqlite://db/event_store_test.db', subject.connection_url
@@ -46,21 +46,21 @@ describe EventStore::Configuration do
 
     it 'postgres' do
       subject.instance_eval {
-        db :postgres
+        db       :postgres
         username "stuart"
         password "password1"
-        host "nexia"
-        port "5432"
-        db_name "test_db"
+        host     "nexia"
+        port      5432
+        db_name  "test_db"
       }
       assert_equal "postgres://stuart:password1@nexia:5432/test_db", subject.connection_url
     end
 
     it 'leaves out username and password if they arent included' do
       subject.instance_eval {
-        db :postgres
-        host "nexia"
-        port "5432"
+        db      :postgres
+        host    "nexia"
+        port     5432
         db_name "test_db"
       }
       assert_equal "postgres://nexia:5432/test_db", subject.connection_url
@@ -68,8 +68,8 @@ describe EventStore::Configuration do
 
     it 'defaults to port 5432' do
       subject.instance_eval {
-        db :postgres
-        host "nexia"
+        db      :postgres
+        host    "nexia"
         db_name "test_db"
       }
       assert_equal "postgres://nexia:5432/test_db", subject.connection_url
