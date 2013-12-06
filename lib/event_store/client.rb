@@ -24,7 +24,7 @@ module EventStore
     end
 
     def peek
-      @device.events.last
+      @device.last_event
     end
 
   end
