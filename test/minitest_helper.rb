@@ -13,7 +13,7 @@ Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'), 0)
 Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'))
 
 EventStore.configure do
-  db :sqlite
-  db_name 'db/event_store_test.db'
+  adapter  :sqlite
+  database 'db/event_store_test.db'
 end
 

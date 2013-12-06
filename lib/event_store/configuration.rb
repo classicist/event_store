@@ -4,14 +4,14 @@ require 'event_store/errors'
 module EventStore
   class Configuration
     attr_reader :adapter_options
-    def db adapter
-      @adapter_options = adapter_settings.fetch(adapter)
+    def adapter adapter_name
+      @adapter_options = adapter_settings.fetch(adapter_name)
       requires
     rescue KeyError
-      raise InvalidAdapterError, "The adapter #{adapter} could not be found."
+      raise InvalidAdapterError, "The adapter #{adapter_name} could not be found."
     end
 
-    [:username, :password, :host, :port, :db_name].each do |meth|
+    [:username, :password, :host, :port, :database].each do |meth|
       define_method meth do |*args|
         if args.empty?
           instance_variable_get("@#{meth}")
@@ -35,7 +35,7 @@ module EventStore
     end
 
     def connection_address
-      @connection_address ||= "#{login_info}#{location_info}#{db_name}"
+      @connection_address ||= "#{login_info}#{location_info}#{database}"
     end
 
     def location_info
