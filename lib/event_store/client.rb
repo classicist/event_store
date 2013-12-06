@@ -20,7 +20,7 @@ module EventStore
     end
 
     def event_stream_from sequence_number, max=nil
-      @device.events.starting_from_sequence_number(sequence_number).limit(max)
+      event_stream.starting_from_sequence_number(sequence_number).limit(max)
     end
 
     def peek
