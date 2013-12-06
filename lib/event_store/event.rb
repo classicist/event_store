@@ -26,19 +26,5 @@ module EventStore
       end
     end
 
-    def has_concurrency_issue? expected_sequence_number
-      previous_event_of_same_type && ( expected_sequence_number < previous_event_of_same_type.sequence_number )
-    end
-
-    private
-
-    def previous_event_of_same_type
-      @previous_event ||= device.last_event_of_type(fully_qualified_name)
-    end
-
-    def device
-      @device ||= Device.new(device_id)
-    end
-
   end
 end

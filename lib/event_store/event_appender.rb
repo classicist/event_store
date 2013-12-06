@@ -9,12 +9,16 @@ module EventStore
     def append raw_events
       Event.db.transaction do
         prepared_events = prepare_events raw_events
-        check_for_concurrency_issues prepared_events
+        check_for_concurrency_issues(prepared_events) if concurrency_issue_possible?
         commit prepared_events
       end
     end
 
     private
+
+    def concurrency_issue_possible?
+      @potential_concurrency_issue ||= @expected_sequence_number < @device.last_event.sequence_number
+    end
 
     def check_for_concurrency_issues events
       events.each do |event|
@@ -25,11 +29,8 @@ module EventStore
     end
 
     def has_concurrency_issue? event
-      has_potential_concurrency_issue? && event.has_concurrency_issue?(@expected_sequence_number)
-    end
-
-    def has_potential_concurrency_issue?
-      @potential_concurrency_issue ||= @expected_sequence_number < @device.last_event.sequence_number
+      last_event_of_type = @device.last_event_of_type(event.fully_qualified_name)
+      last_event_of_type && @expected_sequence_number < last_event_of_type.sequence_number
     end
 
     def prepare_events raw_events
