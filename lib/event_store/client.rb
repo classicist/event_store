@@ -11,7 +11,7 @@ module EventStore
 
     def append event_data
       appender = EventAppender.new(@aggregate).append(event_data)
-      yield if block_given?
+      yield(event_data) if block_given?
       nil
     end
 

@@ -131,6 +131,12 @@ describe EventStore::Client do
         @client.append([]) { x += 1 }
         expect(x).to eq(1)
       end
+
+      it 'should pass the raw event_data to the block' do
+        @client.append([@new_event]) do |raw_event_data|
+          expect(raw_event_data).to eq([@new_event])
+        end
+      end
     end
 
   end
