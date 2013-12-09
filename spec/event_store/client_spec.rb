@@ -27,12 +27,12 @@ describe EventStore::Client do
   end
 
 
-  describe 'event streams from sequence' do
+  describe 'event streams from version' do
     subject { es_client.new(1) }
 
-    it 'should return events starting at the specified sequence number and above' do
+    it 'should return events starting at the specified version and above' do
       stream = subject.event_stream_from(2)
-      expect(stream.map(&:sequence_number).all?{ |sequence_number| sequence_number >= 2 }).to be_true
+      expect(stream.map(&:version).all?{ |version| version >= 2 }).to be_true
     end
 
     it 'should respect the max, if specified' do
@@ -40,7 +40,7 @@ describe EventStore::Client do
       expect(stream.count).to eq(5)
     end
 
-    it 'should be empty for sequences above the current highest sequence number' do
+    it 'should be empty for version above the current highest version number' do
       stream = subject.event_stream_from(43)
       expect(stream).to be_empty
     end
@@ -54,8 +54,8 @@ describe EventStore::Client do
     end
 
     it 'should return the last event in the event stream' do
-      last_event = Sequel::Model.db.from(:event_store_events).where(aggregate_id: 1).order(:sequence_number).last
-      expect(subject.sequence_number).to eq(last_event[:sequence_number])
+      last_event = Sequel::Model.db.from(:event_store_events).where(aggregate_id: 1).order(:version).last
+      expect(subject.version).to eq(last_event[:version])
     end
   end
 
@@ -66,12 +66,12 @@ describe EventStore::Client do
       @new_event = OpenStruct.new(:header => OpenStruct.new(:aggregate_id => '1', :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
     end
 
-    describe "expected sequence number < last found sequence number" do
+    describe "expected version number < last found version" do
       describe 'type mismatch' do
         it 'should raise an error' do
           @event.update(:fully_qualified_name => "duplicate")
           @new_event.fully_qualified_name = "duplicate"
-          expect { @client.append([@new_event], @event.sequence_number - 1) }.to raise_error(EventStore::ConcurrencyError)
+          expect { @client.append([@new_event], @event.version - 1) }.to raise_error(EventStore::ConcurrencyError)
         end
       end
 
@@ -81,18 +81,18 @@ describe EventStore::Client do
         end
 
         it 'should succeed' do
-          expect(@client.append([@new_event], @event.sequence_number - 1)).to be_true
+          expect(@client.append([@new_event], @event.version - 1)).to be_true
         end
 
         it 'should succeed with multiple events of the same type' do
-          expect(@client.append([@new_event, @new_event], @event.sequence_number - 1)).to be_true
+          expect(@client.append([@new_event, @new_event], @event.version - 1)).to be_true
         end
       end
 
       describe 'with prior events of same type' do
         it 'should raise an error' do
           @event.update(:fully_qualified_name => "new")
-          expect { @client.append([@new_event], @event.sequence_number - 1) }.to raise_error(EventStore::ConcurrencyError)
+          expect { @client.append([@new_event], @event.version - 1) }.to raise_error(EventStore::ConcurrencyError)
         end
       end
     end

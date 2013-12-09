@@ -1,9 +1,9 @@
 module EventStore
   class EventAppender
 
-    def initialize aggregate, expected_sequence_number
+    def initialize aggregate, expected_version
       @aggregate = aggregate
-      @expected_sequence_number = expected_sequence_number
+      @expected_version = expected_version
     end
 
     def append raw_events
@@ -23,13 +23,13 @@ module EventStore
     private
 
     def concurrency_issue_possible?
-      @potential_concurrency_issue ||= @expected_sequence_number < @aggregate.last_event.sequence_number
+      @potential_concurrency_issue ||= @expected_version < @aggregate.last_event.version
     end
 
     def has_concurrency_issue? event
       if concurrency_issue_possible?
         last_event_of_type = @aggregate.last_event_of_type(event.fully_qualified_name)
-        last_event_of_type && @expected_sequence_number < last_event_of_type.sequence_number
+        last_event_of_type && @expected_version < last_event_of_type.version
       else
         false
       end
@@ -45,7 +45,7 @@ module EventStore
     end
 
     def concurrency_error
-      ConcurrencyError.new("Expected sequence number #{@expected_sequence_number} does not occur after last sequence number")
+      ConcurrencyError.new("Expected version #{@expected_version} does not occur after last version")
     end
 
   end
