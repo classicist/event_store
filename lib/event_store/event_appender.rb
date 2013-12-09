@@ -1,9 +1,8 @@
 module EventStore
   class EventAppender
 
-    def initialize aggregate, expected_version
+    def initialize aggregate
       @aggregate = aggregate
-      @expected_version = expected_version
     end
 
     def append raw_events
@@ -23,13 +22,13 @@ module EventStore
     private
 
     def concurrency_issue_possible?
-      @potential_concurrency_issue ||= @expected_version < @aggregate.last_event.version
+      @potential_concurrency_issue ||= expected_version < @aggregate.last_event.version
     end
 
     def has_concurrency_issue? event
       if concurrency_issue_possible?
         last_event_of_type = @aggregate.last_event_of_type(event.fully_qualified_name)
-        last_event_of_type && @expected_version < last_event_of_type.version
+        last_event_of_type && expected_version < last_event_of_type.version
       else
         false
       end
@@ -46,6 +45,15 @@ module EventStore
 
     def concurrency_error
       ConcurrencyError.new("Expected version #{@expected_version} does not occur after last version")
+    end
+
+    private
+
+    def expected_version
+      @expected_version ||= begin
+        last_event = @aggregate.last_event
+        last_event ? last_event.version + 1 : Float::INFINITY
+      end
     end
 
   end

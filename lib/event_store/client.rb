@@ -9,8 +9,8 @@ module EventStore
       @aggregate = Aggregate.new(aggregate_id)
     end
 
-    def append event_data, expected_version
-      appender = EventAppender.new(@aggregate, expected_version).append(event_data)
+    def append event_data
+      appender = EventAppender.new(@aggregate).append(event_data)
       yield if block_given?
       nil
     end
