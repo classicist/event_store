@@ -1,6 +1,8 @@
 module EventStore
   class Event < Sequel::Model(:event_store_events)
 
+    REQUIRED_ATTRIBUTES = %w{ aggregate_id fully_qualified_name occurred_at data }
+
     set_dataset order(:version)
 
     dataset_module do
@@ -17,11 +19,9 @@ module EventStore
       end
     end
 
-    @@required_attributes = %w{ aggregate_id fully_qualified_name occurred_at data }
-
     def validate
       super
-      @@required_attributes.each do |attribute_name|
+      REQUIRED_ATTRIBUTES.each do |attribute_name|
         errors.add(attribute_name, "is required") if send(attribute_name).to_s.strip.empty?
       end
     end
