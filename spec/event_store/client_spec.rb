@@ -2,25 +2,25 @@ require_relative '../spec_helper'
 require 'ostruct'
 
 # one time setup
-([1]*10 + [2]*10).shuffle.each do |device_id|
-  EventStore::Event.create :device_id => device_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
+([1]*10 + [2]*10).shuffle.each do |aggregate_id|
+  EventStore::Event.create :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
 end
 
 describe EventStore::Client do
   let(:es_client) { EventStore::Client }
 
   describe 'event streams' do
-    it 'should be empty for devices without events' do
+    it 'should be empty for aggregates without events' do
       stream = es_client.new(100).event_stream
       expect(stream.empty?).to be_true
     end
 
-    it 'should be for a single device' do
+    it 'should be for a single aggregate' do
       stream = es_client.new(1).event_stream
-      expect(stream.map(&:device_id).all?{ |device_id| device_id == '1' }).to be_true
+      expect(stream.map(&:aggregate_id).all?{ |aggregate_id| aggregate_id == '1' }).to be_true
     end
 
-    it 'should include all events for that device' do
+    it 'should include all events for that aggregate' do
       stream = es_client.new(1).event_stream
       expect(stream.count).to eq(10)
     end
@@ -54,7 +54,7 @@ describe EventStore::Client do
     end
 
     it 'should return the last event in the event stream' do
-      last_event = Sequel::Model.db.from(:event_store_events).where(device_id: 1).order(:sequence_number).last
+      last_event = Sequel::Model.db.from(:event_store_events).where(aggregate_id: 1).order(:sequence_number).last
       expect(subject.sequence_number).to eq(last_event[:sequence_number])
     end
   end
@@ -63,7 +63,7 @@ describe EventStore::Client do
     before do
       @client = EventStore::Client.new(1)
       @event = @client.peek
-      @new_event = OpenStruct.new(:header => OpenStruct.new(:device_id => '1', :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
+      @new_event = OpenStruct.new(:header => OpenStruct.new(:aggregate_id => '1', :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
     end
 
     describe "expected sequence number < last found sequence number" do

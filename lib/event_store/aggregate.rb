@@ -1,12 +1,12 @@
 module EventStore
-  class Device
+  class Aggregate
 
     def initialize id
       @id = id
     end
 
     def events
-      @events ||= Event.for_device(@id)
+      @events ||= Event.for_aggregate(@id)
     end
 
     def last_event_of_type type

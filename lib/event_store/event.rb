@@ -4,8 +4,8 @@ module EventStore
     set_dataset order(:sequence_number)
 
     dataset_module do
-      def for_device device_id
-        where :device_id => device_id.to_s
+      def for_aggregate aggregate_id
+        where :aggregate_id => aggregate_id.to_s
       end
 
       def starting_from_sequence_number seq_nbr
@@ -17,7 +17,7 @@ module EventStore
       end
     end
 
-    @@required_attributes = %w{ device_id fully_qualified_name occurred_at data }
+    @@required_attributes = %w{ aggregate_id fully_qualified_name occurred_at data }
 
     def validate
       super

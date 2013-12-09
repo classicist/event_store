@@ -26,21 +26,21 @@ end
 ### Creating a client
 
 ```ruby
-client = EventStore::Client.new(device_id)
+client = EventStore::Client.new(aggregate_id)
 
-# Get a device's event stream
+# Get an aggregate's event stream
 client.event_stream
 
-# Get a device's event stream starting from a sequence number
+# Get an aggregate's event stream starting from a sequence number
 client.event_stream_from(347)
 
 # event_stream_from optionally takes a limit
 client.event_stream_from(347, 1000)
 
-# Get the last event for a device
+# Get the last event for an aggregate
 client.peek
 
-# Append events to a device's event stream
+# Append events to an aggregate's event stream
 client.append(events, expected_sequence_number)
 ```
 
