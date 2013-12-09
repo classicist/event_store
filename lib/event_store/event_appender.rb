@@ -22,7 +22,10 @@ module EventStore
     private
 
     def concurrency_issue_possible?
-      @potential_concurrency_issue ||= expected_version < @aggregate.last_event.version
+      @potential_concurrency_issue ||= begin
+        last_event = @aggregate.last_event
+        last_event && expected_version < last_event.version
+      end
     end
 
     def has_concurrency_issue? event
