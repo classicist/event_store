@@ -81,11 +81,11 @@ describe EventStore::Client do
         end
 
         it 'should succeed' do
-          expect(@client.append([@new_event], @event.version - 1)).to be_true
+          expect(@client.append([@new_event], @event.version - 1)).to be_nil
         end
 
         it 'should succeed with multiple events of the same type' do
-          expect(@client.append([@new_event, @new_event], @event.version - 1)).to be_true
+          expect(@client.append([@new_event, @new_event], @event.version - 1)).to be_nil
         end
       end
 

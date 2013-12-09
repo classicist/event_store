@@ -12,7 +12,7 @@ module EventStore
     def append event_data, expected_version
       appender = EventAppender.new(@aggregate, expected_version).append(event_data)
       yield if block_given?
-      true
+      nil
     end
 
     def event_stream
