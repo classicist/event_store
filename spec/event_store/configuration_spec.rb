@@ -1,4 +1,4 @@
-require_relative '../minitest_helper'
+require_relative '../spec_helper'
 
 describe EventStore::Configuration do
   subject { EventStore::Configuration.new }
@@ -11,27 +11,27 @@ describe EventStore::Configuration do
       port      5555
       database  "database"
     }
-    assert_equal "username", config.username
-    assert_equal  5555, config.port
-    assert_equal "password", config.password
-    assert_equal "host", config.host
-    assert_equal "database", config.database
+    expect(config.username).to eq("username")
+    expect(config.port).to eq(5555)
+    expect(config.password).to eq("password")
+    expect(config.host).to eq("host")
+    expect(config.database).to eq("database")
   end
 
   describe '#adapter_settings' do
     it 'sqlite' do
       subject.instance_eval { adapter :sqlite }
-      assert_equal 'sqlite', subject.adapter_options[:protocol]
+      expect(subject.adapter_options[:protocol]).to eq('sqlite')
     end
 
     it 'postgres' do
       subject.instance_eval { adapter :postgres }
-      assert_equal 'postgres', subject.adapter_options[:protocol]
+      expect(subject.adapter_options[:protocol]).to eq('postgres')
     end
 
     it 'vertica' do
       subject.instance_eval { adapter :vertica }
-      assert_equal 'vertica', subject.adapter_options[:protocol]
+      expect(subject.adapter_options[:protocol]).to eq('vertica')
     end
   end
 
@@ -41,7 +41,7 @@ describe EventStore::Configuration do
         adapter  :sqlite
         database "db/event_store_test.db"
       }
-      assert_equal 'sqlite://db/event_store_test.db', subject.connection_url
+      expect(subject.connection_url).to eq('sqlite://db/event_store_test.db')
     end
 
     it 'postgres' do
@@ -53,7 +53,7 @@ describe EventStore::Configuration do
         port      5432
         database  "test_db"
       }
-      assert_equal "postgres://stuart:password1@nexia:5432/test_db", subject.connection_url
+      expect(subject.connection_url).to eq("postgres://stuart:password1@nexia:5432/test_db")
     end
 
     it 'leaves out username and password if they arent included' do
@@ -63,7 +63,7 @@ describe EventStore::Configuration do
         port     5432
         database "test_db"
       }
-      assert_equal "postgres://nexia:5432/test_db", subject.connection_url
+      expect(subject.connection_url).to eq("postgres://nexia:5432/test_db")
     end
 
     it 'defaults to port 5432' do
@@ -72,7 +72,7 @@ describe EventStore::Configuration do
         host    "nexia"
         database "test_db"
       }
-      assert_equal "postgres://nexia:5432/test_db", subject.connection_url
+      expect(subject.connection_url).to eq("postgres://nexia:5432/test_db")
     end
   end
 end
