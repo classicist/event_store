@@ -1,6 +1,4 @@
-require 'minitest'
-require 'minitest/autorun'
-require 'minitest/pride'
+require 'rspec'
 require 'sequel'
 require 'sequel/extensions/migration'
 require 'event_store'

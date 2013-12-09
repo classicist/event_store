@@ -1,4 +1,4 @@
-require_relative '../minitest_helper'
+require_relative '../spec_helper'
 
 describe EventStore::Event do
   subject { EventStore::Event }
@@ -7,9 +7,9 @@ describe EventStore::Event do
 
     [:device_id, :fully_qualified_name, :data].each do |attr|
       it "requires #{attr}" do
-        refute subject.new(attr => nil).valid?
-        refute subject.new(attr => "   ").valid?
-        refute subject.new(attr => "").valid?
+        expect(subject.new(attr => nil)).to_not be_valid
+        expect(subject.new(attr => "   ")).to_not be_valid
+        expect(subject.new(attr => "")).to_not be_valid
       end
     end
 
@@ -17,8 +17,8 @@ describe EventStore::Event do
     [:occurred_at].each do |attr|
       # throws error on "    "
       it "requires #{attr}" do
-        refute subject.new(attr => "").valid?
-        refute subject.new(attr => nil).valid?
+        expect(subject.new(attr => "")).to_not be_valid
+        expect(subject.new(attr => nil)).to_not be_valid
       end
     end
 
