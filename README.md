@@ -1,21 +1,27 @@
-event_store
-===========
+# EventStore
 
-Ruby implementation of an EventSource (A+ES) for the Nexia Ecosystem
+Ruby implementation of an EventSource (A+ES) for the Nexia Ecosystem.
 
 # Usage
+
+Currently, `EventStore` supports `sqlite`, `postgres`, and `vertica` adapters. Define your adapter and the connection parameters in the `EventStore` configure block.
 
 ### Connecting
 ```ruby
 EventStore.configure do
   adapter  :vertica
   database "my_database"
-  host     "host"
+  host     "db.example.com"
   username "user1234"
   password "password"
   port      5432
 end
 ```
+
+### Notes on Connecting
+
+- `sqlite` only requires one connection parameter, `database`. This is the path to your database file.
+- `postgres` will assume a port of `5432` if one is not supplied.
 
 ### Creating a client
 
