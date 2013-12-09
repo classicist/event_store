@@ -9,8 +9,8 @@ module EventStore
       @aggregate = Aggregate.new(aggregate_id)
     end
 
-    def append event_data, expected_sequence_number
-      appender = EventAppender.new(@aggregate, expected_sequence_number).append(event_data)
+    def append event_data, expected_version
+      appender = EventAppender.new(@aggregate, expected_version).append(event_data)
       yield if block_given?
       true
     end
@@ -19,8 +19,8 @@ module EventStore
       @aggregate.events
     end
 
-    def event_stream_from sequence_number, max=nil
-      event_stream.starting_from_sequence_number(sequence_number).limit(max)
+    def event_stream_from version, max=nil
+      event_stream.starting_from_version(version).limit(max)
     end
 
     def peek

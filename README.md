@@ -31,7 +31,7 @@ client = EventStore::Client.new(aggregate_id)
 # Get an aggregate's event stream
 client.event_stream
 
-# Get an aggregate's event stream starting from a sequence number
+# Get an aggregate's event stream starting from a version
 client.event_stream_from(347)
 
 # event_stream_from optionally takes a limit
@@ -41,7 +41,7 @@ client.event_stream_from(347, 1000)
 client.peek
 
 # Append events to an aggregate's event stream
-client.append(events, expected_sequence_number)
+client.append(events, expected_version)
 ```
 
 ### Migrating your database
