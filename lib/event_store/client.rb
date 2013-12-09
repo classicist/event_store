@@ -3,20 +3,20 @@ require 'event_store/errors'
 module EventStore
   class Client
 
-    attr_reader :device_id
+    attr_reader :aggregate_id
 
-    def initialize device_id
-      @device = Device.new(device_id)
+    def initialize aggregate_id
+      @aggregate = Aggregate.new(aggregate_id)
     end
 
     def append event_data, expected_sequence_number
-      appender = EventAppender.new(@device, expected_sequence_number).append(event_data)
+      appender = EventAppender.new(@aggregate, expected_sequence_number).append(event_data)
       yield if block_given?
       true
     end
 
     def event_stream
-      @device.events
+      @aggregate.events
     end
 
     def event_stream_from sequence_number, max=nil
@@ -24,7 +24,7 @@ module EventStore
     end
 
     def peek
-      @device.last_event
+      @aggregate.last_event
     end
 
   end

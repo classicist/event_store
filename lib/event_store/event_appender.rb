@@ -1,8 +1,8 @@
 module EventStore
   class EventAppender
 
-    def initialize device, expected_sequence_number
-      @device = device
+    def initialize aggregate, expected_sequence_number
+      @aggregate = aggregate
       @expected_sequence_number = expected_sequence_number
     end
 
@@ -23,12 +23,12 @@ module EventStore
     private
 
     def concurrency_issue_possible?
-      @potential_concurrency_issue ||= @expected_sequence_number < @device.last_event.sequence_number
+      @potential_concurrency_issue ||= @expected_sequence_number < @aggregate.last_event.sequence_number
     end
 
     def has_concurrency_issue? event
       if concurrency_issue_possible?
-        last_event_of_type = @device.last_event_of_type(event.fully_qualified_name)
+        last_event_of_type = @aggregate.last_event_of_type(event.fully_qualified_name)
         last_event_of_type && @expected_sequence_number < last_event_of_type.sequence_number
       else
         false
@@ -37,7 +37,7 @@ module EventStore
 
     def prepare_event raw_event
       Event.new do |e|
-        e.device_id            = raw_event.header.device_id
+        e.aggregate_id         = raw_event.header.aggregate_id
         e.occurred_at          = raw_event.header.occurred_at
         e.data                 = raw_event.to_s
         e.fully_qualified_name = raw_event.fully_qualified_name
