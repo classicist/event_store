@@ -43,3 +43,11 @@ client.peek
 # Append events to a device's event stream
 client.append(events, expected_sequence_number)
 ```
+
+### Migrating your database
+
+With the `sequel` gem installed, you have access to its command line tool. To migrate your database, enter the following command:
+`$ sequel -m path/to/migrations/folder postgres://username:password@localhost:5432/event_store_test`
+
+- The first argument is the path to the folder containing migrations, not a specific file. An example migration can be found at [001_create_event_store_events.rb](https://github.com/nexiahome/event_store/blob/master/db/migrations/001_create_event_store_events.rb)
+- The second argument is your full database connection url
