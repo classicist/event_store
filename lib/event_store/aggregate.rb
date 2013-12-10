@@ -1,12 +1,15 @@
 module EventStore
   class Aggregate
 
-    def initialize id
+    attr_reader :event_class
+
+    def initialize id, event_class
       @id = id
+      @event_class = event_class
     end
 
     def events
-      @events ||= Event.for_aggregate(@id)
+      @events ||= event_class.for_aggregate(@id)
     end
 
     def last_event_of_type type

@@ -1,7 +1,7 @@
 require_relative '../spec_helper'
 
 describe EventStore::Event do
-  subject { EventStore::Event }
+  subject { EventStore::DeviceEvent }
 
   describe "#validate" do
 

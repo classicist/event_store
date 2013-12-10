@@ -3,14 +3,12 @@ require 'event_store/errors'
 module EventStore
   class Client
 
-    attr_reader :aggregate_id
-
-    def initialize aggregate_id
-      @aggregate = Aggregate.new(aggregate_id)
+    def initialize aggregate_id, event_class
+      @aggregate = Aggregate.new(aggregate_id, event_class)
     end
 
     def append event_data, expected_version
-      appender = EventAppender.new(@aggregate, expected_version).append(event_data)
+      EventAppender.new(@aggregate, expected_version).append(event_data)
       yield if block_given?
       nil
     end
