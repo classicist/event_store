@@ -6,7 +6,7 @@ module EventStore
     end
 
     def append raw_events
-      Event.db.transaction do
+      @aggregate.event_class.db.transaction do
         prepared_events = raw_events.map do |raw_event|
           event = prepare_event(raw_event)
           raise concurrency_error if has_concurrency_issue?(event)
@@ -38,7 +38,7 @@ module EventStore
     end
 
     def prepare_event raw_event
-      Event.new do |e|
+      @aggregate.event_class.new do |e|
         e.aggregate_id         = raw_event.header.aggregate_id
         e.occurred_at          = raw_event.header.occurred_at
         e.data                 = raw_event.to_s

@@ -2,8 +2,9 @@ require_relative '../spec_helper'
 require 'ostruct'
 
 # one time setup
+event_class = EventStore::Aggregate.new(1, :device).event_class
 ([1]*10 + [2]*10).shuffle.each do |aggregate_id|
-  EventStore::Event.create :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
+  event_class.create :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
 end
 
 # Forgive me
@@ -18,24 +19,24 @@ describe EventStore::Client do
 
   describe 'event streams' do
     it 'should be empty for aggregates without events' do
-      stream = es_client.new(100).event_stream
+      stream = es_client.new(100, :device).event_stream
       expect(stream.empty?).to be_true
     end
 
     it 'should be for a single aggregate' do
-      stream = es_client.new(1).event_stream
+      stream = es_client.new(1, :device).event_stream
       expect(stream.map(&:aggregate_id).all?{ |aggregate_id| aggregate_id == '1' }).to be_true
     end
 
     it 'should include all events for that aggregate' do
-      stream = es_client.new(1).event_stream
+      stream = es_client.new(1, :device).event_stream
       expect(stream.count).to eq(10)
     end
   end
 
 
   describe 'event streams from version' do
-    subject { es_client.new(1) }
+    subject { es_client.new(1, :device) }
 
     it 'should return events starting at the specified version and above' do
       stream = subject.event_stream_from(2)
@@ -54,21 +55,17 @@ describe EventStore::Client do
   end
 
   describe '#peek' do
-    subject { es_client.new(1).peek }
-
-    it 'should return one event' do
-      expect(subject.class).to eq(EventStore::Event)
-    end
+    subject { es_client.new(1, :device).peek }
 
     it 'should return the last event in the event stream' do
-      last_event = Sequel::Model.db.from(:event_store_events).where(aggregate_id: 1).order(:version).last
+      last_event = Sequel::Model.db.from(:device_events).where(aggregate_id: 1).order(:version).last
       expect(subject.version).to eq(last_event[:version])
     end
   end
 
   describe '#append' do
     before do
-      @client = EventStore::Client.new(1)
+      @client = EventStore::Client.new(1, :device)
       @event = @client.peek
       @new_event = OpenStruct.new(:header => OpenStruct.new(:aggregate_id => '1', :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
       set_expected_version.call(0)
@@ -115,9 +112,9 @@ describe EventStore::Client do
       end
 
       it 'should revert all append events if one fails' do
-        starting_count = EventStore::Event.count
+        starting_count = EventStore::DeviceEvent.count
         expect { @client.append([@new_event, @bad_event]) }.to raise_error(Sequel::ValidationFailed)
-        expect(EventStore::Event.count).to eq(starting_count)
+        expect(EventStore::DeviceEvent.count).to eq(starting_count)
       end
 
       it 'does not yield to the block if it fails' do
