@@ -25,5 +25,9 @@ module EventStore
       @aggregate.last_event
     end
 
+    def current_state
+      @aggregate.current_state
+    end
+
   end
 end

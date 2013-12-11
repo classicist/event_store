@@ -136,6 +136,19 @@ describe EventStore::Client do
       end
     end
 
+    describe 'current_state' do
+      it "finds the most recent records for each type" do
+        aggregate = EventStore::Aggregate.new(10, :device)
+        %w{ e1 e2 e3 e1 }.each do |fqn|
+          aggregate.event_class.create :aggregate_id => 10, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => fqn
+        end
+        events_we_expect = %w{ e1 e2 e3 e4 e5 }.map do |fqn|
+          aggregate.event_class.create :aggregate_id => 10, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => fqn
+        end
+        expect(es_client.new(10, :device).current_state).to match_array(events_we_expect)
+      end
+    end
+
   end
 
 end
