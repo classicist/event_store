@@ -33,7 +33,7 @@ module EventStore
     private
 
     def event_class_name
-      "#{@type.to_s.capitalize}Event"
+      @event_class_name ||= "#{@type.to_s.capitalize}Event"
     end
 
   end
