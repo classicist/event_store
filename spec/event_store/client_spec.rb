@@ -7,6 +7,13 @@ event_class = EventStore::Aggregate.new(1, :device).event_class
   event_class.create :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
 end
 
+# Forgive me
+set_expected_version = ->(version_number) {
+  EventStore::EventAppender.class_eval(
+    %Q(def expected_version; #{version_number}; end)
+  )
+}
+
 describe EventStore::Client do
   let(:es_client) { EventStore::Client }
 
@@ -61,35 +68,38 @@ describe EventStore::Client do
       @client = EventStore::Client.new(1, :device)
       @event = @client.peek
       @new_event = OpenStruct.new(:header => OpenStruct.new(:aggregate_id => '1', :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
+      set_expected_version.call(0)
     end
 
-    describe "expected version number < last found version" do
+    describe "expected version number < last version" do
       describe 'type mismatch' do
         it 'should raise an error' do
           @event.update(:fully_qualified_name => "duplicate")
           @new_event.fully_qualified_name = "duplicate"
-          expect { @client.append([@new_event], @event.version - 1) }.to raise_error(EventStore::ConcurrencyError)
+
+          expect { @client.append([@new_event]) }.to raise_error(EventStore::ConcurrencyError)
         end
       end
 
       describe 'no prior events of type' do
         before do
           @event.update(:fully_qualified_name => "old")
+          set_expected_version.call(0)
         end
 
         it 'should succeed' do
-          expect(@client.append([@new_event], @event.version - 1)).to be_nil
+          expect(@client.append([@new_event])).to be_nil
         end
 
         it 'should succeed with multiple events of the same type' do
-          expect(@client.append([@new_event, @new_event], @event.version - 1)).to be_nil
+          expect(@client.append([@new_event, @new_event])).to be_nil
         end
       end
 
       describe 'with prior events of same type' do
         it 'should raise an error' do
           @event.update(:fully_qualified_name => "new")
-          expect { @client.append([@new_event], @event.version - 1) }.to raise_error(EventStore::ConcurrencyError)
+          expect { @client.append([@new_event]) }.to raise_error(EventStore::ConcurrencyError)
         end
       end
     end
@@ -98,28 +108,29 @@ describe EventStore::Client do
       before do
         @bad_event = @new_event.dup
         @bad_event.fully_qualified_name = nil
+        set_expected_version.call(1000)
       end
 
       it 'should revert all append events if one fails' do
         starting_count = EventStore::DeviceEvent.count
-        expect { @client.append([@new_event, @bad_event], 1000) }.to raise_error(Sequel::ValidationFailed)
+        expect { @client.append([@new_event, @bad_event]) }.to raise_error(Sequel::ValidationFailed)
         expect(EventStore::DeviceEvent.count).to eq(starting_count)
       end
 
       it 'does not yield to the block if it fails' do
         x = 0
-        expect { @client.append([@bad_event], 100) { x += 1 } }.to raise_error(Sequel::ValidationFailed)
+        expect { @client.append([@bad_event]) { x += 1 } }.to raise_error(Sequel::ValidationFailed)
         expect(x).to eq(0)
       end
 
       it 'yield to the block after event creation' do
         x = 0
-        @client.append([], 100) { x += 1 }
+        @client.append([]) { x += 1 }
         expect(x).to eq(1)
       end
 
       it 'should pass the raw event_data to the block' do
-        @client.append([@new_event], 100) do |raw_event_data|
+        @client.append([@new_event]) do |raw_event_data|
           expect(raw_event_data).to eq([@new_event])
         end
       end
