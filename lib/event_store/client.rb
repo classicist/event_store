@@ -3,8 +3,8 @@ require 'event_store/errors'
 module EventStore
   class Client
 
-    def initialize aggregate_id, event_class
-      @aggregate = Aggregate.new(aggregate_id, event_class)
+    def initialize aggregate_id, aggregate_type
+      @aggregate = Aggregate.new(aggregate_id, aggregate_type)
     end
 
     def append event_data, expected_version

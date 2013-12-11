@@ -11,7 +11,6 @@ module EventStore
     config.connect_to_db
     require 'event_store/client'
     require 'event_store/event'
-    require 'event_store/device_event'
   end
 
   def self.config
