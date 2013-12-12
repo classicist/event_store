@@ -39,8 +39,8 @@ module EventStore
 
     def prepare_event raw_event
       @aggregate.event_class.new do |e|
-        e.aggregate_id         = raw_event.header.aggregate_id
-        e.occurred_at          = raw_event.header.occurred_at
+        e.aggregate_id         = raw_event.aggregate_id
+        e.occurred_at          = raw_event.occurred_at
         e.data                 = raw_event.to_s
         e.fully_qualified_name = raw_event.fully_qualified_name
       end

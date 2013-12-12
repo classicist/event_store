@@ -67,7 +67,7 @@ describe EventStore::Client do
     before do
       @client = EventStore::Client.new(1, :device)
       @event = @client.peek
-      @new_event = OpenStruct.new(:header => OpenStruct.new(:aggregate_id => '1', :occurred_at => DateTime.now), :fully_qualified_name => "new", :data => 1.to_s(2))
+      @new_event = OpenStruct.new(:aggregate_id => '1', :occurred_at => DateTime.now, :fully_qualified_name => "new", :data => 1.to_s(2))
       set_expected_version.call(0)
     end
 
