@@ -37,7 +37,7 @@ module EventStore
     private
 
     def event_types
-      events.group(:fully_qualified_name).map(&:fully_qualified_name)
+      events.select(:fully_qualified_name).group(:fully_qualified_name).map(&:fully_qualified_name)
     end
 
     def event_class_name
