@@ -1,21 +1,19 @@
+require 'rspec'
 require 'event_store'
 require 'benchmark'
 
 EventStore.configure do
   adapter  :postgres
-  database ENV['BM-DATABASE']
-  username ENV['BM-USERNAME']
-  password ENV['BM-PASSWORD']
-  host     ENV['BM-HOST']
-  post     ENV['BM-PORT']
+  database 'event_store_performance'
+  host     'localhost'
 end
 
-ITERATIONS = 100_000
+ITERATIONS = 100
 
 Benchmark.bmbm do |x|
   x.report 'Read time' do
-    ITERS.times do
-      EventStore::Client.new(1, :device)
+    ITERATIONS.times do
+      EventStore::Client.new(rand(300) + 1, :device).current_state
     end
   end
 end
