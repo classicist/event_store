@@ -9,11 +9,11 @@ Currently, `EventStore` supports `sqlite`, `postgres`, and `vertica` adapters. D
 ### Connecting
 ```ruby
 EventStore.connect {
-  :adapter  => :vertica
-  :database => "my_database"
-  :host     => "db.example.com"
-  :username => "user1234"
-  :password => "password"
+  :adapter  => :vertica,
+  :database => "my_database",
+  :host     => "db.example.com",
+  :username => "user1234",
+  :password => "password",
   :port     => 5432
 }
 ```
