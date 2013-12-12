@@ -2,6 +2,7 @@ require 'sequel'
 require 'event_store/version'
 require 'event_store/event_appender'
 require 'event_store/aggregate'
+require 'event_store/snapshot_creator'
 
 module EventStore
 

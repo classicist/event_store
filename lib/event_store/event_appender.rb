@@ -16,6 +16,9 @@ module EventStore
         # All concurrency issues need to be checked before persisting any of the events
         # Otherwise, the newly appended events may raise erroneous concurrency errors
         prepared_events.each(&:save)
+        if snapshot_creator = SnapshotCreator.new(@aggregate) and snapshot_creator.needs_new_snapshot?
+          snapshot_creator.create_snapshot!
+        end
       end
     end
 

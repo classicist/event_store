@@ -19,4 +19,5 @@ describe EventStore::Aggregate do
     ar = (1..10).map {|i| "e_#{i}" }
     expect(aggregate.event_types_since(5)).to match_array(ar[5,5])
   end
+
 end
