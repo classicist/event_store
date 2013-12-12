@@ -13,5 +13,6 @@ module EventStore
     Sequel.connect(*args)
     require 'event_store/client'
     require 'event_store/event'
+    require 'event_store/snapshot'
   end
 end
