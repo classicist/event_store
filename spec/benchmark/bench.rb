@@ -2,11 +2,7 @@ require 'rspec'
 require 'event_store'
 require 'benchmark'
 
-EventStore.configure do
-  adapter  :postgres
-  database 'event_store_performance'
-  host     'localhost'
-end
+EventStore.connect :adapter => :postgres, :database => 'event_store_performance', :host => 'localhost'
 
 ITERATIONS = 100
 
