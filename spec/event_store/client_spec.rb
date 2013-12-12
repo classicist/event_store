@@ -67,7 +67,7 @@ describe EventStore::Client do
     before do
       @client = EventStore::Client.new(1, :device)
       @event = @client.peek
-      @new_event = OpenStruct.new(:aggregate_id => '1', :occurred_at => DateTime.now, :fully_qualified_name => "new", :data => 1.to_s(2))
+      @new_event = EventStore::EventAdapter.new('1', DateTime.now, "new", 1001.to_s(2))
       set_expected_version.call(0)
     end
 
@@ -92,6 +92,7 @@ describe EventStore::Client do
         end
 
         it 'should succeed with multiple events of the same type' do
+          puts @new_event
           expect(@client.append([@new_event, @new_event])).to be_nil
         end
       end

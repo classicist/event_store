@@ -1,4 +1,6 @@
 module EventStore
+  EventAdapter = Struct.new(:aggregate_id, :occurred_at, :serialized_event, :fully_qualified_name)
+
   class EventAppender
 
     def initialize aggregate
@@ -41,7 +43,7 @@ module EventStore
       @aggregate.event_class.new do |e|
         e.aggregate_id         = raw_event.aggregate_id
         e.occurred_at          = raw_event.occurred_at
-        e.data                 = raw_event.to_s
+        e.data                 = raw_event.serialized_event
         e.fully_qualified_name = raw_event.fully_qualified_name
       end
     end
