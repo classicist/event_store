@@ -32,21 +32,17 @@ module EventStore
       end
     end
 
-    def all_event_types(snapshot)
-      snapshot_event_types = events.where(:version => snapshot.event_ids).map(&:fully_qualified_name)
-      recent_event_types = event_types_since(snapshot.event_ids.max)
-      snapshot_event_types | recent_event_types
-    end
-
     def current_state
       snapshot = Snapshot.latest_for_aggregate(self)
-      if snapshot
-        event_types = all_event_types snapshot
+      event_types = if snapshot
+       snapshot.event_types | event_types_since(snapshot.event_ids.max)
       else
-        event_types = event_types_since(0)
+        event_types_since 0
       end
       event_types.map { |et| last_event_of_type(et) }
     end
+
+    private
 
     def event_types_since(event_version)
       events.where('version > ?', event_version).select(:fully_qualified_name).group(:fully_qualified_name).map(&:fully_qualified_name)

@@ -18,5 +18,15 @@ module EventStore
       self[:event_ids] = ids.pack(PACKING_FORMAT)
     end
 
+    def event_types
+      aggregate.events.where(:version => event_ids).map(&:fully_qualified_name)
+    end
+
+    private
+
+    def aggregate
+      @aggregate ||= Aggregate.new(aggregate_id, aggregate_type)
+    end
+
   end
 end

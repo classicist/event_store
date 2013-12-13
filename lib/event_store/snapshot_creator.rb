@@ -13,8 +13,8 @@ module EventStore
       false
     end
 
-    def self.last_snapshot(aggregate)
-      Snapshot.last_snapshot(aggregate)
+    def last_snapshot
+      Snapshot.last_snapshot(@aggregate)
     end
   end
 end

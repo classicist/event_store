@@ -30,5 +30,6 @@ RSpec.configure do |config|
   config.after(:each) do
     agg = EventStore::Aggregate.new(1, :device)
     agg.event_class.delete
+    EventStore::Snapshot.delete
   end
 end
