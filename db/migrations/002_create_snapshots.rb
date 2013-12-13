@@ -4,7 +4,7 @@ Sequel.migration do
       primary_key :id
       String      :aggregate_id
       String      :aggregate_type
-      blob        :event_ids
+      bytea       :event_ids
     end
   end
 end
