@@ -1,12 +1,6 @@
 require_relative '../spec_helper'
 require 'ostruct'
 
-# one time setup
-event_class = EventStore::Aggregate.new(1, :device).event_class
-([1]*10 + [2]*10).shuffle.each do |aggregate_id|
-  event_class.create :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
-end
-
 # Forgive me
 set_expected_version = ->(version_number) {
   EventStore::EventAppender.class_eval(
@@ -15,6 +9,13 @@ set_expected_version = ->(version_number) {
 }
 
 describe EventStore::Client do
+  before do
+    event_class = EventStore::Aggregate.new(1, :device).event_class
+    ([1]*10 + [2]*10).shuffle.each do |aggregate_id|
+      event_class.create :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
+    end
+  end
+
   let(:es_client) { EventStore::Client }
 
   describe 'event streams' do
@@ -49,7 +50,7 @@ describe EventStore::Client do
     end
 
     it 'should be empty for version above the current highest version number' do
-      stream = subject.event_stream_from(43)
+      stream = subject.event_stream_from(123456)
       expect(stream).to be_empty
     end
   end
@@ -92,14 +93,13 @@ describe EventStore::Client do
         end
 
         it 'should succeed with multiple events of the same type' do
-          puts @new_event
           expect(@client.append([@new_event, @new_event])).to be_nil
         end
       end
 
       describe 'with prior events of same type' do
         it 'should raise an error' do
-          @event.update(:fully_qualified_name => "new")
+          @client.append([@new_event])
           expect { @client.append([@new_event]) }.to raise_error(EventStore::ConcurrencyError)
         end
       end
