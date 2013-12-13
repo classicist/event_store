@@ -25,5 +25,4 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov-rcov"
 
   spec.add_dependency "sequel", "~> 3.42"
-  spec.add_dependency "sequel-vertica", "~> 0.1"
 end
