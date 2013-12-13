@@ -14,4 +14,5 @@ event_types = Array.new(EVENT_TYPES) { |i| "event_type_#{i}" }
   (EVENTS/DEVICES).times do
     agg.event_class.create(aggregate_id: device_id, fully_qualified_name: event_types.sample, data: 9999999999999.to_s(2), occurred_at: DateTime.now)
   end
+  EventStore::SnapshotCreator.new(agg).create_snapshot!
 end
