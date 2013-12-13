@@ -37,8 +37,9 @@ describe EventStore::SnapshotCreator do
       end
 
       it "snapshot needed" do
-        events = create_events_for_aggregate @aggregate, 101
+        events = create_events_for_aggregate @aggregate, 10
         EventStore::Snapshot.create :aggregate_id => @aggregate.id, :aggregate_type => @aggregate.type, :event_ids => events.map(&:version)
+        create_events_for_aggregate @aggregate, 100
         expect(EventStore::SnapshotCreator.new(@aggregate).needs_new_snapshot?).to be_true
       end
 
