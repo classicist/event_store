@@ -4,17 +4,23 @@ module EventStore
       @aggregate = aggregate
     end
 
-    def events_since_last_snapshot
-      self.class.last_snapshot(@aggregate)
-      @aggregate
+    def create_snapshot!
+      events = @aggregate.current_state
+      Snapshot.create(:aggregate_id => @aggregate.id, :aggregate_type => @aggregate.type, :event_ids => events.map(&:version))
     end
 
     def needs_new_snapshot?
-      false
+      events_since_last_snapshot >= 100
     end
 
-    def last_snapshot
-      Snapshot.last_snapshot(@aggregate)
-    end
+    private
+
+   def events_since_last_snapshot
+     if last_snap = Snapshot.latest_for_aggregate(@aggregate)
+       @aggregate.events.where("version >= ?", last_snap.event_ids.max).count
+     else
+       @aggregate.events.count
+     end
+   end
   end
 end

@@ -16,7 +16,7 @@ describe EventStore::Aggregate do
 
     describe "with a pre-existing snapshot" do
       before do
-        EventStore::Snapshot.create :aggregate_id => @aggregate.id, :aggregate_type => @aggregate_type, :event_ids => @aggregate.events.map(&:version)
+        EventStore::Snapshot.create :aggregate_id => @aggregate.id, :aggregate_type => @aggregate.type, :event_ids => @aggregate.events.map(&:version)
       end
 
       describe "that holds all the most recent events" do

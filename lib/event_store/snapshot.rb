@@ -4,10 +4,7 @@ module EventStore
     PACKING_FORMAT = 'U'
 
     def self.latest_for_aggregate(aggregate)
-      where(:aggregate_id => aggregate.id, :aggregate_type => aggregate.type.to_s).order(Sequel.desc(:id)).limit(1).first
-    end
-    def self.last_snapshot(aggregate)
-      where(:aggregate_id => aggregate.id).order(Sequel.desc(:id)).limit(1).first
+      where(:aggregate_id => aggregate.id.to_s, :aggregate_type => aggregate.type.to_s).order(Sequel.desc(:id)).limit(1).first
     end
 
     def event_ids

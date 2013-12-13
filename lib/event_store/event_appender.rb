@@ -18,7 +18,8 @@ module EventStore
         # All concurrency issues need to be checked before persisting any of the events
         # Otherwise, the newly appended events may raise erroneous concurrency errors
         prepared_events.each(&:save)
-        if snapshot_creator = SnapshotCreator.new(@aggregate) and snapshot_creator.needs_new_snapshot?
+        snapshot_creator = SnapshotCreator.new(@aggregate)
+        if snapshot_creator.needs_new_snapshot?
           snapshot_creator.create_snapshot!
         end
       end
@@ -52,7 +53,7 @@ module EventStore
     end
 
     def concurrency_error
-      ConcurrencyError.new("Expected version #{@expected_version} does not occur after last version")
+      ConcurrencyError.new("Expected version #{expected_version} does not occur after last version")
     end
 
     private
