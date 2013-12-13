@@ -8,11 +8,11 @@ module EventStore
     end
 
     def event_ids
-      self[:event_ids].unpack(PACKING_FORMAT)
+      self[:event_ids].unpack(PACKING_FORMAT * self[:event_ids].length)
     end
 
     def event_ids=(ids)
-      self[:event_ids] = ids.pack(PACKING_FORMAT)
+      self[:event_ids] = ids.pack(PACKING_FORMAT * ids.length)
     end
 
     def event_types
