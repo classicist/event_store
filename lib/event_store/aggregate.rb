@@ -4,7 +4,7 @@ module EventStore
     attr_reader :id, :type
 
     def initialize id, type
-      @id = id
+      @id = id.to_s
       @type = type
     end
 
@@ -34,18 +34,20 @@ module EventStore
 
     def current_state
       snapshot = Snapshot.latest_for_aggregate(self)
-      event_types = if snapshot
-       snapshot.event_types | event_types_since(snapshot.event_ids.max)
+      if snapshot
+        recent_events = most_recent_events_per_type_since(snapshot.event_ids.max)
+        missing_event_types = snapshot.event_types - recent_events.map(&:fully_qualified_name)
+        [recent_events, snapshot.events.where(:fully_qualified_name => missing_event_types)].map(&:to_a).inject(&:+)
       else
-        event_types_since 0
+        most_recent_events_per_type_since(0).to_a
       end
-      event_types.map { |et| last_event_of_type(et) }
     end
 
     private
 
-    def event_types_since(event_version)
-      events.where('version > ?', event_version).select(:fully_qualified_name).group(:fully_qualified_name).map(&:fully_qualified_name)
+    def most_recent_events_per_type_since(event_version)
+      recent_event_versions = event_class.db.fetch("SELECT MAX(version) AS version FROM #{event_class.table_name} WHERE aggregate_id=? AND version > ? GROUP BY fully_qualified_name", @id, event_version)
+      events.where(:version => recent_event_versions)
     end
 
     def event_class_name
