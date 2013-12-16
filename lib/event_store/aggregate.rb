@@ -2,7 +2,7 @@ module EventStore
   class Aggregate
 
     def initialize id, type
-      @id = id
+      @id = id.to_s
       @type = type
     end
 
@@ -31,14 +31,11 @@ module EventStore
     end
 
     def current_state
-      event_types.map { |et| last_event_of_type(et) }
+      recent_event_versions = event_class.db.fetch("SELECT MAX(version) AS version FROM #{event_class.table_name} WHERE aggregate_id=? GROUP BY fully_qualified_name", @id)
+      events.where(:version => recent_event_versions).to_a
     end
 
     private
-
-    def event_types
-      events.select(:fully_qualified_name).group(:fully_qualified_name).map(&:fully_qualified_name)
-    end
 
     def event_class_name
       @event_class_name ||= "#{@type.to_s.capitalize}Event"

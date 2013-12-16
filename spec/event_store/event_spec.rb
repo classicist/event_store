@@ -25,4 +25,10 @@ describe EventStore::Event do
     end
 
   end
+
+  describe '#db' do
+    it 'should be the same as the EventStore#db' do
+      expect(EventStore::Event.db).to equal(EventStore.db)
+    end
+  end
 end
