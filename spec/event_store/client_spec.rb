@@ -10,9 +10,9 @@ set_expected_version = ->(version_number) {
 
 describe EventStore::Client do
   before do
-    event_class = EventStore::Aggregate.new(1, :device).event_class
+    agg = EventStore::Aggregate.new(1, :device)
     ([1]*10 + [2]*10).shuffle.each do |aggregate_id|
-      event_class.create :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
+      agg.events.insert :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
     end
   end
 
@@ -39,11 +39,6 @@ describe EventStore::Client do
   describe 'event streams from version' do
     subject { es_client.new(1, :device) }
 
-    it 'should return events starting at the specified version and above' do
-      stream = subject.event_stream_from(2)
-      expect(stream.map(&:version).all?{ |version| version >= 2 }).to be_true
-    end
-
     it 'should respect the max, if specified' do
       stream = subject.event_stream_from(2, 5)
       expect(stream.count).to eq(5)
@@ -59,8 +54,8 @@ describe EventStore::Client do
     subject { es_client.new(1, :device).peek }
 
     it 'should return the last event in the event stream' do
-      last_event = Sequel::Model.db.from(:device_events).where(aggregate_id: 1).order(:version).last
-      expect(subject.version).to eq(last_event[:version])
+      last_event = EventStore.db.from(:device_events).where(aggregate_id: '1').order(:version).last
+      expect(subject).to eq(EventStore::Event.new(last_event[:aggregate_id], last_event[:occurred_at], last_event[:data], last_event[:fully_qualified_name]))
     end
   end
 
@@ -68,14 +63,14 @@ describe EventStore::Client do
     before do
       @client = EventStore::Client.new(1, :device)
       @event = @client.peek
-      @new_event = EventStore::EventAdapter.new('1', DateTime.now, "new", 1001.to_s(2))
+      @new_event = EventStore::Event.new('1', DateTime.now, "new", 1001.to_s(2))
       set_expected_version.call(0)
     end
 
     describe "expected version number < last version" do
       describe 'type mismatch' do
         it 'should raise an error' do
-          @event.update(:fully_qualified_name => "duplicate")
+          @client.instance_variable_get('@aggregate').events.insert(:fully_qualified_name => 'duplicate', :aggregate_id => 1, :occurred_at => DateTime.now, :data => 12.to_s(2))
           @new_event.fully_qualified_name = "duplicate"
 
           expect { @client.append([@new_event]) }.to raise_error(EventStore::ConcurrencyError)
@@ -84,7 +79,7 @@ describe EventStore::Client do
 
       describe 'no prior events of type' do
         before do
-          @event.update(:fully_qualified_name => "old")
+          @client.instance_variable_get('@aggregate').events.insert(:fully_qualified_name => 'old', :aggregate_id => 1, :occurred_at => DateTime.now, :data => 12.to_s(2))
           set_expected_version.call(0)
         end
 
@@ -113,14 +108,14 @@ describe EventStore::Client do
       end
 
       it 'should revert all append events if one fails' do
-        starting_count = EventStore::DeviceEvent.count
-        expect { @client.append([@new_event, @bad_event]) }.to raise_error(Sequel::ValidationFailed)
-        expect(EventStore::DeviceEvent.count).to eq(starting_count)
+        starting_count = EventStore.db.from(:device_events).count
+        expect { @client.append([@new_event, @bad_event]) }.to raise_error(EventStore::AttributeMissingError)
+        expect(EventStore.db.from(:device_events).count).to eq(starting_count)
       end
 
       it 'does not yield to the block if it fails' do
         x = 0
-        expect { @client.append([@bad_event]) { x += 1 } }.to raise_error(Sequel::ValidationFailed)
+        expect { @client.append([@bad_event]) { x += 1 } }.to raise_error(EventStore::AttributeMissingError)
         expect(x).to eq(0)
       end
 
@@ -141,10 +136,12 @@ describe EventStore::Client do
       it "finds the most recent records for each type" do
         aggregate = EventStore::Aggregate.new(10, :device)
         %w{ e1 e2 e3 e1 }.each do |fqn|
-          aggregate.event_class.create :aggregate_id => 10, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => fqn
+          aggregate.events.insert :aggregate_id => 10, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => fqn
         end
         events_we_expect = %w{ e1 e2 e3 e4 e5 }.map do |fqn|
-          aggregate.event_class.create :aggregate_id => 10, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => fqn
+          aggregate.events.insert :aggregate_id => 10, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => fqn
+          last_event = aggregate.events.last
+          EventStore::Event.new(last_event[:aggregate_id], last_event[:occurred_at], last_event[:data], last_event[:fully_qualified_name])
         end
         expect(es_client.new(10, :device).current_state).to match_array(events_we_expect)
       end

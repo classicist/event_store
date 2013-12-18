@@ -7,41 +7,17 @@ module EventStore
     end
 
     def events
-      @events ||= event_class.for_aggregate(@id)
+      @events ||= EventStore.db.from("#{@type}_events").where(:aggregate_id => @id.to_s).order(:version)
     end
 
-    def last_event_of_type event_type
-      events.of_type(event_type).reverse_order(:version).first
-    end
-
-    def last_event
-      events.reverse_order(:version).first
-    end
-
-    def event_class
-      if EventStore.const_defined?(event_class_name)
-        EventStore.const_get(event_class_name)
-      else
-        event_table_name = "#{@type}_events"
-        typed_event_class = Class.new(EventStore::Event) do
-          set_dataset from(event_table_name)
-        end
-        EventStore.const_set(event_class_name, typed_event_class)
-      end
-    end
-
-    def current_state
-      event_types.map { |et| last_event_of_type(et) }
+    def last_event_of_each_type
+      event_types.map { |et| events.where(:fully_qualified_name => et).last }
     end
 
     private
 
     def event_types
-      events.select(:fully_qualified_name).group(:fully_qualified_name).map(&:fully_qualified_name)
-    end
-
-    def event_class_name
-      @event_class_name ||= "#{@type.to_s.capitalize}Event"
+      events.order(nil).select(:fully_qualified_name).group(:fully_qualified_name).map{ |e| e[:fully_qualified_name] }
     end
 
   end
