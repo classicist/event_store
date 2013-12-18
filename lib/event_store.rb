@@ -3,6 +3,7 @@ require 'event_store/version'
 require 'event_store/event_appender'
 require 'event_store/aggregate'
 require 'event_store/client'
+require 'event_store/errors'
 
 module EventStore
 
