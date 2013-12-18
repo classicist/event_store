@@ -9,34 +9,14 @@ module EventStore
     end
 
     def events
-      @events ||= event_class.for_aggregate(@id)
+      @events ||= EventStore.db.from("#{@type}_events").where(:aggregate_id => @id.to_s).order(:version)
     end
 
-    def last_event_of_type event_type
-      events.of_type(event_type).reverse_order(:version).limit(1).first
-    end
-
-    def last_event
-      events.reverse_order(:version).limit(1).first
-    end
-
-    def event_class
-      if EventStore.const_defined?(event_class_name)
-        EventStore.const_get(event_class_name)
-      else
-        event_table_name = "#{@type}_events"
-        typed_event_class = Class.new(EventStore::Event) do
-          set_dataset from(event_table_name)
-        end
-        EventStore.const_set(event_class_name, typed_event_class)
-      end
-    end
-
-    def current_state
+    def last_event_of_each_type
       snapshot = Snapshot.latest_for_aggregate(self)
       if snapshot
         recent_events = most_recent_events_per_type_since(snapshot.event_ids.max)
-        missing_event_types = snapshot.event_types - recent_events.map(&:fully_qualified_name)
+        missing_event_types = snapshot.event_types - recent_events.map{ |e| e[:fully_qualified_name] }
         [recent_events, snapshot.events.where(:fully_qualified_name => missing_event_types)].map(&:to_a).inject(&:+)
       else
         most_recent_events_per_type_since(0).to_a
@@ -46,12 +26,8 @@ module EventStore
     private
 
     def most_recent_events_per_type_since(event_version)
-      recent_event_versions = event_class.db.fetch("SELECT MAX(version) AS version FROM #{event_class.table_name} WHERE aggregate_id=? AND version > ? GROUP BY fully_qualified_name", @id, event_version)
+      recent_event_versions = events.order(nil).group(:fully_qualified_name).select{ max(:version) }
       events.where(:version => recent_event_versions)
-    end
-
-    def event_class_name
-      @event_class_name ||= "#{@type.to_s.capitalize}Event"
     end
 
   end

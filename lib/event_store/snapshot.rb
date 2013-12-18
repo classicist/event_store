@@ -20,7 +20,7 @@ module EventStore
     end
 
     def event_types
-      events.map(&:fully_qualified_name)
+      events.map{ |e| e[:fully_qualified_name] }
     end
 
     private

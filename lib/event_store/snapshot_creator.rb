@@ -5,8 +5,8 @@ module EventStore
     end
 
     def create_snapshot!
-      events = @aggregate.current_state
-      Snapshot.create(:aggregate_id => @aggregate.id, :aggregate_type => @aggregate.type, :event_ids => events.map(&:version))
+      events = @aggregate.last_event_of_each_type
+      Snapshot.create :aggregate_id => @aggregate.id, :aggregate_type => @aggregate.type, :event_ids => events.map{ |e| e[:version] }
     end
 
     def needs_new_snapshot?

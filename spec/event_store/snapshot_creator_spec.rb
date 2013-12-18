@@ -1,9 +1,10 @@
 require_relative '../spec_helper'
 
 def create_events_for_aggregate aggregate, event_count
-  (1..event_count).map do |i|
-    aggregate.event_class.create :aggregate_id => aggregate.id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => "e_#{i}"
+  event_ids = (1..event_count).map do |i|
+    EventStore.db.from(:device_events).insert :aggregate_id => aggregate.id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => "e_#{i}"
   end
+  EventStore.db.from(:device_events).where(:version => event_ids).to_a
 end
 
 describe EventStore::SnapshotCreator do
@@ -32,13 +33,13 @@ describe EventStore::SnapshotCreator do
     context "with a pre-existing snapshot" do
       it "no snapshot needed" do
         events = create_events_for_aggregate @aggregate, 10
-        EventStore::Snapshot.create :aggregate_id => @aggregate.id, :aggregate_type => @aggregate.type, :event_ids => events.map(&:version)
+        EventStore::Snapshot.create :aggregate_id => @aggregate.id, :aggregate_type => @aggregate.type, :event_ids => events.map{ |e| e[:version] }
         expect(EventStore::SnapshotCreator.new(@aggregate).needs_new_snapshot?).to be_false
       end
 
       it "snapshot needed" do
         events = create_events_for_aggregate @aggregate, 10
-        EventStore::Snapshot.create :aggregate_id => @aggregate.id, :aggregate_type => @aggregate.type, :event_ids => events.map(&:version)
+        EventStore::Snapshot.create :aggregate_id => @aggregate.id, :aggregate_type => @aggregate.type, :event_ids => events.map{ |e| e[:version] }
         create_events_for_aggregate @aggregate, 100
         expect(EventStore::SnapshotCreator.new(@aggregate).needs_new_snapshot?).to be_true
       end

@@ -21,6 +21,7 @@ require 'event_store'
 
 def test_db
   Sequel.connect('sqlite://db/event_store_test.db')
+  # Sequel.connect('postgres://localhost:5432/nexia_event_store_development')
 end
 Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'))
 
@@ -28,8 +29,7 @@ EventStore.connect :adapter => :sqlite, :database => 'db/event_store_test.db'
 
 RSpec.configure do |config|
   config.after(:each) do
-    agg = EventStore::Aggregate.new(1, :device)
-    agg.event_class.delete
     EventStore::Snapshot.delete
+    EventStore.db.from(:device_events).delete
   end
 end
