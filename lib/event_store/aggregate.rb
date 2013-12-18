@@ -31,7 +31,7 @@ module EventStore
     end
 
     def current_state
-      recent_event_versions = event_class.db.fetch("SELECT MAX(version) AS version FROM #{event_class.table_name} WHERE aggregate_id=? GROUP BY fully_qualified_name", @id)
+      recent_event_versions = events.group(:fully_qualified_name).select{ max(:version) }
       events.where(:version => recent_event_versions).to_a
     end
 
