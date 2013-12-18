@@ -12,7 +12,7 @@ module EventStore
 
     def last_event_of_each_type
       recent_event_versions = events.order(nil).group(:fully_qualified_name).select{ max(:version) }
-      events.where(:version => recent_event_versions).to_a
+      events.where(:version => recent_event_versions)
     end
 
   end
