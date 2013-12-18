@@ -1,5 +1,3 @@
-require 'event_store/errors'
-
 module EventStore
   class Client
 
