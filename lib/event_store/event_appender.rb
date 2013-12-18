@@ -49,8 +49,6 @@ module EventStore
       ConcurrencyError.new("Expected version #{@expected_version} does not occur after last version")
     end
 
-    private
-
     def expected_version
       @expected_version ||= begin
         last_event = @aggregate.events.last
