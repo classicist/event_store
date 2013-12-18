@@ -11,11 +11,11 @@ module EventStore
     end
 
     def last_event_of_type event_type
-      events.of_type(event_type).reverse_order(:version).limit(1).first
+      events.of_type(event_type).reverse_order(:version).first
     end
 
     def last_event
-      events.reverse_order(:version).limit(1).first
+      events.reverse_order(:version).first
     end
 
     def event_class
