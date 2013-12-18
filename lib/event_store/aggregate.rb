@@ -10,7 +10,7 @@ module EventStore
       @events ||= EventStore.db.from("#{@type}_events").where(:aggregate_id => @id.to_s).order(:version)
     end
 
-    def current_state
+    def last_event_of_each_type
       event_types.map { |et| events.where(:fully_qualified_name => et).last }
     end
 

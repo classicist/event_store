@@ -26,7 +26,7 @@ module EventStore
     end
 
     def current_state
-      translate_events @aggregate.current_state
+      translate_events @aggregate.last_event_of_each_type
     end
 
     private

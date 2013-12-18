@@ -20,7 +20,8 @@ require 'sequel/extensions/migration'
 require 'event_store'
 
 def test_db
-  Sequel.connect('sqlite://db/event_store_test.db')
+  # Sequel.connect('sqlite://db/event_store_test.db')
+  Sequel.connect('postgres://localhost:5432/nexia_event_store_development')
 end
 Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'))
 
