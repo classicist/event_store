@@ -54,7 +54,7 @@ describe EventStore::Client do
     subject { es_client.new(1, :device).peek }
 
     it 'should return the last event in the event stream' do
-      last_event = Sequel::Model.db.from(:device_events).where(aggregate_id: 1).order(:version).last
+      last_event = EventStore.db.from(:device_events).where(aggregate_id: '1').order(:version).last
       expect(subject).to eq(EventStore::Event.new(last_event[:aggregate_id], last_event[:occurred_at], last_event[:data], last_event[:fully_qualified_name]))
     end
   end
