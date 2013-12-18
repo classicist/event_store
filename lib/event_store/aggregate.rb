@@ -2,12 +2,12 @@ module EventStore
   class Aggregate
 
     def initialize id, type
-      @id = id
+      @id = id.to_s
       @type = type
     end
 
     def events
-      @events ||= event_class.for_aggregate(@id)
+      @events ||= event_class.where(:aggregate_id => @id).order(:version)
     end
 
     def event_class

@@ -17,8 +17,8 @@ module EventStore
       @aggregate.events
     end
 
-    def event_stream_from version, max=nil
-      event_stream.starting_from_version(version).limit(max)
+    def event_stream_from version_number, max=nil
+      event_stream.where{ version >= version_number.to_i }.limit(max)
     end
 
     def peek
