@@ -4,6 +4,7 @@ require 'event_store/event_appender'
 require 'event_store/aggregate'
 require 'event_store/snapshot_creator'
 require 'event_store/client'
+require 'event_store/errors'
 
 module EventStore
 
