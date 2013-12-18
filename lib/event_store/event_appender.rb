@@ -16,7 +16,6 @@ module EventStore
 
         # All concurrency issues need to be checked before persisting any of the events
         # Otherwise, the newly appended events may raise erroneous concurrency errors
-
         @aggregate.events.multi_insert(prepared_events)
       end
 
@@ -58,8 +57,6 @@ module EventStore
     def concurrency_error
       ConcurrencyError.new("Expected version #{expected_version} does not occur after last version")
     end
-
-    private
 
     def expected_version
       @expected_version ||= begin
