@@ -10,14 +10,6 @@ module EventStore
       @events ||= event_class.for_aggregate(@id)
     end
 
-    def last_event_of_type event_type
-      events.of_type(event_type).reverse_order(:version).first
-    end
-
-    def last_event
-      events.reverse_order(:version).first
-    end
-
     def event_class
       if EventStore.const_defined?(event_class_name)
         EventStore.const_get(event_class_name)
@@ -31,7 +23,7 @@ module EventStore
     end
 
     def current_state
-      event_types.map { |et| last_event_of_type(et) }
+      event_types.map { |et| events.of_type(et).last }
     end
 
     private

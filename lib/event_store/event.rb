@@ -3,6 +3,8 @@ module EventStore
 
     REQUIRED_ATTRIBUTES = %w{ aggregate_id fully_qualified_name occurred_at data }
 
+    set_dataset order(:version)
+
     dataset_module do
       def for_aggregate aggregate_id
         where :aggregate_id => aggregate_id.to_s

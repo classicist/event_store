@@ -22,7 +22,7 @@ module EventStore
     end
 
     def peek
-      @aggregate.last_event
+      event_stream.last
     end
 
     def current_state

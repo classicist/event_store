@@ -25,14 +25,14 @@ module EventStore
 
     def concurrency_issue_possible?
       @potential_concurrency_issue ||= begin
-        last_event = @aggregate.last_event
+        last_event = @aggregate.events.last
         last_event && expected_version < last_event.version
       end
     end
 
     def has_concurrency_issue? event
       if concurrency_issue_possible?
-        last_event_of_type = @aggregate.last_event_of_type(event.fully_qualified_name)
+        last_event_of_type = @aggregate.events.of_type(event.fully_qualified_name).last
         last_event_of_type && expected_version < last_event_of_type.version
       else
         false
