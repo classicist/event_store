@@ -2,38 +2,26 @@ module EventStore
   class Aggregate
 
     def initialize id, type
-      @id = id.to_s
+      @id = id
       @type = type
     end
 
     def events
-      @events ||= event_class.where(:aggregate_id => @id).order(:version)
-    end
-
-    def event_class
-      if EventStore.const_defined?(event_class_name)
-        EventStore.const_get(event_class_name)
-      else
-        event_table_name = "#{@type}_events"
-        typed_event_class = Class.new(EventStore::Event) do
-          set_dataset from(event_table_name)
-        end
-        EventStore.const_set(event_class_name, typed_event_class)
-      end
+      @events ||= EventStore.db.from(event_table_name).where(:aggregate_id => @id.to_s).order(:version)
     end
 
     def current_state
-      event_types.map { |et| events.of_type(et).last }
+      event_types.map { |et| events.where(:fully_qualified_name => et).last }
     end
 
     private
 
     def event_types
-      events.select(:fully_qualified_name).group(:fully_qualified_name).map(&:fully_qualified_name)
+      events.select(:fully_qualified_name).group(:fully_qualified_name).map{ |e| e[:fully_qualified_name] }
     end
 
-    def event_class_name
-      @event_class_name ||= "#{@type.to_s.capitalize}Event"
+    def event_table_name
+      @event_table_name ||= "#{@type}_events"
     end
 
   end

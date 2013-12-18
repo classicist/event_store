@@ -28,7 +28,6 @@ EventStore.connect :adapter => :sqlite, :database => 'db/event_store_test.db'
 
 RSpec.configure do |config|
   config.after(:each) do
-    agg = EventStore::Aggregate.new(1, :device)
-    agg.event_class.delete
+    EventStore.db.from(:device_events).delete
   end
 end
