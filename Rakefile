@@ -20,7 +20,7 @@ end
 
 task :'db:migrate:pg_perf' do
   begin
-    sh 'createdb nexia_event_store_development'
+    sh 'createdb event_store_performance'
   rescue => e
     #we don't care if it exists alreay, so don't fail
   end
