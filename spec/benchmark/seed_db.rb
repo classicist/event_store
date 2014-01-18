@@ -2,17 +2,23 @@ require 'event_store'
 
 EventStore.connect :adapter => :postgres, :database => 'event_store_performance', :host => 'localhost'
 
-ITERATIONS = 100_000
-DEVICES = 30_000
-EVENTS = 5_000_000
-EVENT_TYPES = 100
+DEVICES = 100
+EVENTS_PER_DEVICE = 5_000
+EVENT_TYPES = 1000
 
 event_types = Array.new(EVENT_TYPES) { |i| "event_type_#{i}" }
 events_table = EventStore.db[:device_events]
+records = []
+
+puts "Creating #{DEVICES} Aggregates with #{EVENTS_PER_DEVICE} events each. There are #{EVENT_TYPES} types of events."
 
 (1..DEVICES).each do |device_id|
-  agg = EventStore::Aggregate.new(device_id, :device)
-  (EVENTS/DEVICES).times do
-    events_table.insert(aggregate_id: device_id.to_s, fully_qualified_name: event_types.sample, data: 9999999999999.to_s(2), occurred_at: DateTime.now)
+  EVENTS_PER_DEVICE.times do
+    records << {aggregate_id: device_id.to_s, fully_qualified_name: event_types.sample, data: 9999999999999.to_s(2), occurred_at: DateTime.now}
   end
+  puts "Created events for #{device_id} of #DEVICES}" if device_id % 1000 == 0
 end
+
+puts "Inserting events into database"
+
+events_table.multi_insert(records)
