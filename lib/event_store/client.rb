@@ -16,11 +16,11 @@ module EventStore
     end
 
     def event_stream_from version_number, max=nil
-      translate_events @aggregate.events.where{ version >= version_number.to_i }.limit(max)
+      translate_events @aggregate.events_from(version_number, max)
     end
 
     def peek
-      translate_event @aggregate.events.last
+      translate_event @aggregate.last_event
     end
 
     def current_state
