@@ -16,7 +16,11 @@ module EventStore
     end
 
     def last_event
-      @last_event_query ||= events.limit(1).last
+      events.limit(1).last
+    end
+
+    def last_event_of_type(fully_qualified_name)
+      events.where(fully_qualified_name: fully_qualified_name).order('asc').limit(1).last
     end
 
     def last_event_of_each_type
