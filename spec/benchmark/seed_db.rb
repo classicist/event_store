@@ -2,7 +2,7 @@ require 'event_store'
 
 EventStore.connect :adapter => :postgres, :database => 'event_store_performance', :host => 'localhost'
 
-DEVICES = 100
+DEVICES = 1000
 EVENTS_PER_DEVICE = 5_000
 EVENT_TYPES = 1000
 
@@ -16,9 +16,13 @@ puts "Creating #{DEVICES} Aggregates with #{EVENTS_PER_DEVICE} events each. Ther
   EVENTS_PER_DEVICE.times do
     records << {aggregate_id: device_id.to_s, fully_qualified_name: event_types.sample, data: 9999999999999.to_s(2), occurred_at: DateTime.now}
   end
-  puts "Created events for #{device_id} of #DEVICES}" if device_id % 1000 == 0
+  if device_id % 1000 == 0
+    puts "Created events for #{device_id} of #{DEVICES} Aggregates"
+    puts "Inserting #{EVENTS_PER_DEVICE * DEVICES} events into database"
+    events_table.multi_insert(records)
+    records = []
+  end
 end
 
-puts "Inserting events into database"
 
-events_table.multi_insert(records)
+
