@@ -29,7 +29,7 @@ module EventStore
       "SELECT event_1.*
         FROM #{@event_table} event_1 LEFT JOIN #{@event_table} event_2
         ON (event_1.fully_qualified_name = event_2.fully_qualified_name AND event_1.version < event_2.version)
-        WHERE  event_1.aggregate_id = #{@id} AND event_2.version IS NULL;"
+        WHERE  event_1.aggregate_id = '#{@id}' AND event_2.version IS NULL;"
       )
       @last_event_of_type_query
     end

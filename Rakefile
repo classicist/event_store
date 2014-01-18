@@ -26,3 +26,11 @@ task :'db:migrate:pg_perf' do
   end
   sh 'bundle exec sequel -m db/migrations postgres://localhost:5432/event_store_performance'
 end
+
+task :'db:seed:pg_perf' do
+  sh 'time bundle exec ruby spec/benchmark/seed_db.rb'
+end
+
+task :benchmark do
+  sh 'bundle exec ruby spec/benchmark/bench.rb'
+end
