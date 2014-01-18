@@ -17,3 +17,12 @@ task :'db:migrate:pg' do
   end
   sh 'bundle exec sequel -m db/migrations postgres://localhost:5432/nexia_event_store_development'
 end
+
+task :'db:migrate:pg_perf' do
+  begin
+    sh 'createdb nexia_event_store_development'
+  rescue => e
+    #we don't care if it exists alreay, so don't fail
+  end
+  sh 'bundle exec sequel -m db/migrations postgres://localhost:5432/event_store_performance'
+end
