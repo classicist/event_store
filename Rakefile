@@ -9,6 +9,11 @@ task :'db:migrate:sqlite' do
   sh 'bundle exec sequel -m db/migrations sqlite://db/event_store_test.db'
 end
 
+task :'db:install_hstore' do
+  #http://stackoverflow.com/questions/11584749/how-to-create-a-new-database-with-the-hstore-extension-already-installed
+  sh "psql -d template1 -c 'create extension hstore;'"
+end
+
 task :'db:migrate:pg' do
   begin
     sh 'dropdb nexia_event_store_development'
