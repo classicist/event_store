@@ -12,21 +12,39 @@ describe EventStore::Client do
   before do
     agg = EventStore::Aggregate.new(1, :device)
     ([1]*10 + [2]*10).shuffle.each do |aggregate_id|
-      agg.events.insert :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => 'event_name'
+      agg.events.insert :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :serialized_event => 234532.to_s(2), :fully_qualified_name => 'event_name'
     end
   end
 
   let(:es_client) { EventStore::Client }
 
-  describe 'event streams' do
+  describe 'raw event streams' do
     it 'should be empty for aggregates without events' do
-      stream = es_client.new(100, :device).event_stream
+      stream = es_client.new(100, :device).raw_event_stream
       expect(stream.empty?).to be_true
     end
 
     it 'should be for a single aggregate' do
-      stream = es_client.new(1, :device).event_stream
+      stream = es_client.new(1, :device).raw_event_stream
       expect(stream.map(&:aggregate_id).all?{ |aggregate_id| aggregate_id == '1' }).to be_true
+    end
+
+    it 'should include all events for that aggregate' do
+      stream = es_client.new(1, :device).raw_event_stream
+      expect(stream.count).to eq(10)
+    end
+  end
+
+  describe 'event streams' do
+    it 'should be empty for aggregates without events' do
+      stream = es_client.new(100, :device).raw_event_stream
+      expect(stream.empty?).to be_true
+    end
+
+    it 'should be for a single aggregate' do
+      raw_stream = es_client.new(1, :device).raw_event_stream
+      stream = es_client.new(1, :device).event_stream
+      stream.map(&:serialized_event).should == raw_stream.map(&:serialized_event)
     end
 
     it 'should include all events for that aggregate' do
@@ -55,7 +73,7 @@ describe EventStore::Client do
 
     it 'should return the last event in the event stream' do
       last_event = EventStore.db.from(:device_events).where(aggregate_id: '1').order(:version).last
-      expect(subject).to eq(EventStore::Event.new(last_event[:aggregate_id], last_event[:occurred_at], last_event[:data], last_event[:fully_qualified_name]))
+      expect(subject).to eq(EventStore::SerializedEvent.new(last_event[:fully_qualified_name], last_event[:serialized_event]))
     end
   end
 
@@ -70,7 +88,7 @@ describe EventStore::Client do
     describe "expected version number < last version" do
       describe 'type mismatch' do
         it 'should raise an error' do
-          @client.instance_variable_get('@aggregate').events.insert(:fully_qualified_name => 'duplicate', :aggregate_id => 1, :occurred_at => DateTime.now, :data => 12.to_s(2))
+          @client.instance_variable_get('@aggregate').events.insert(:fully_qualified_name => 'duplicate', :aggregate_id => 1, :occurred_at => DateTime.now, :serialized_event => 12.to_s(2))
           @new_event.fully_qualified_name = "duplicate"
 
           expect { @client.append([@new_event]) }.to raise_error(EventStore::ConcurrencyError)
@@ -79,7 +97,7 @@ describe EventStore::Client do
 
       describe 'no prior events of type' do
         before do
-          @client.instance_variable_get('@aggregate').events.insert(:fully_qualified_name => 'old', :aggregate_id => 1, :occurred_at => DateTime.now, :data => 12.to_s(2))
+          @client.instance_variable_get('@aggregate').events.insert(:fully_qualified_name => 'old', :aggregate_id => 1, :occurred_at => DateTime.now, :serialized_event => 12.to_s(2))
           set_expected_version.call(0)
         end
 
@@ -89,6 +107,12 @@ describe EventStore::Client do
 
         it 'should succeed with multiple events of the same type' do
           expect(@client.append([@new_event, @new_event])).to be_nil
+        end
+
+        context 'snapshot' do
+          it "#append should write-through cache the event in a snapshot" do
+            @client.raw_snapshot.should == 'foo'
+          end
         end
       end
 
@@ -136,14 +160,16 @@ describe EventStore::Client do
       it "finds the most recent records for each type" do
         aggregate = EventStore::Aggregate.new(10, :device)
         %w{ e1 e2 e3 e1 }.each do |fqn|
-          aggregate.events.insert :aggregate_id => 10, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => fqn
+          aggregate.events.insert :aggregate_id => 10, :occurred_at => DateTime.now, :serialized_event => 234532.to_s(2), :fully_qualified_name => fqn
         end
         events_we_expect = %w{ e1 e2 e3 e4 e5 }.map do |fqn|
-          aggregate.events.insert :aggregate_id => 10, :occurred_at => DateTime.now, :data => 234532.to_s(2), :fully_qualified_name => fqn
+          aggregate.events.insert :aggregate_id => 10, :occurred_at => DateTime.now, :serialized_event => 234532.to_s(2), :fully_qualified_name => fqn
           last_event = aggregate.events.last
-          EventStore::Event.new(last_event[:aggregate_id], last_event[:occurred_at], last_event[:data], last_event[:fully_qualified_name])
+          EventStore::SerializedEvent.new(last_event[:fully_qualified_name], last_event[:serialized_event])
         end
-        expect(es_client.new(10, :device).current_state).to match_array(events_we_expect)
+        client = es_client.new(10, :device)
+        client.current_state.length.should == 5
+        expect(client.current_state).to match_array(events_we_expect)
       end
     end
 

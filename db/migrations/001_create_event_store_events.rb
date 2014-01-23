@@ -10,7 +10,7 @@ Sequel.migration do
       index       :fully_qualified_name
       DateTime    :occurred_at
       index       :occurred_at
-      bytea       :data
+      bytea       :serialized_event
     end
 
     create_table(:device_snapshots) do

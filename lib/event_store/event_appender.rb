@@ -41,7 +41,7 @@ module EventStore
     def prepare_event raw_event
       { :aggregate_id         => raw_event.aggregate_id,
         :occurred_at          => raw_event.occurred_at,
-        :data                 => raw_event.serialized_event,
+        :serialized_event     => raw_event.serialized_event,
         :fully_qualified_name => raw_event.fully_qualified_name }
     end
 
@@ -59,7 +59,7 @@ module EventStore
     end
 
     def validate! event_hash
-      [:aggregate_id, :fully_qualified_name, :occurred_at, :data].each do |attribute_name|
+      [:aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event].each do |attribute_name|
         if event_hash[attribute_name].to_s.strip.empty?
           raise AttributeMissingError, "value required for #{attribute_name}"
         end

@@ -5,6 +5,7 @@ module EventStore
       @id = id
       @type = type
       @event_table = "#{@type}_events"
+      @snapshot_table = "#{@type}_snapshots"
     end
 
     def events
@@ -20,7 +21,7 @@ module EventStore
     end
 
     def last_event_of_type(fully_qualified_name)
-      events.where(fully_qualified_name: fully_qualified_name).order('asc').limit(1).last
+      events.where(fully_qualified_name: fully_qualified_name).order(:version).limit(1).last
     end
 
     def last_event_of_each_type
@@ -32,6 +33,16 @@ module EventStore
         WHERE  event_1.aggregate_id = '#{@id}' AND event_2.version IS NULL;"
       )
       @last_event_of_type_query
+    end
+
+    def snapshot
+      snapshot = EventStore.db.from(@snapshot_table).where(:aggregate_id => @id.to_s).limit(1)
+      snapshot = snapshot[:snapshot]
+      cached_events = []
+      snapshot.each_pair do |event_name, serialized_event|
+        cached_events << EventStore::SerializedEvent.new(event_name, serialized_event)
+      end
+      cached_events
     end
   end
 end

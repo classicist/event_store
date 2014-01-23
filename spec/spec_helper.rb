@@ -20,12 +20,11 @@ require 'sequel/extensions/migration'
 require 'event_store'
 
 def test_db
-  # Sequel.connect('sqlite://db/event_store_test.db')
-  Sequel.connect('postgres://localhost:5432/nexia_event_store_development')
+  Sequel.connect('postgres://localhost:5432/event_store_test')
 end
 Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'))
 
-EventStore.connect :adapter => :sqlite, :database => 'db/event_store_test.db'
+EventStore.connect :adapter => :postgres, :database => 'event_store_test', host: 'localhost'
 
 RSpec.configure do |config|
   config.after(:each) do
