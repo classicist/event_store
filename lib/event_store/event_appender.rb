@@ -7,16 +7,29 @@ module EventStore
 
     def append raw_events
       EventStore.db.transaction do
+        prepared_snapshot = {}
+        highest_version_number = -1
         prepared_events = raw_events.map do |raw_event|
           event = prepare_event(raw_event)
           validate! event
           raise concurrency_error if has_concurrency_issue?(event)
+          highest_version_number = (event[:version] || 0) if (event[:version] || 0) > highest_version_number
+          prepared_snapshot[raw_event.fully_qualified_name] = raw_event.serialized_event
           event
         end
 
         # All concurrency issues need to be checked before persisting any of the events
         # Otherwise, the newly appended events may raise erroneous concurrency errors
-        @aggregate.events.multi_insert(prepared_events)
+        result = @aggregate.events.multi_insert(prepared_events)
+        snapshot_row = @aggregate.snapshot_query.first
+        if snapshot_row
+          updated_snapshot = snapshot_row[:snapshot].merge(prepared_snapshot.hstore)
+          @aggregate.snapshot_query.update(snapshot: updated_snapshot)
+        else
+          @aggregate.snapshot.insert(aggregate_id: @aggregate.id, version: highest_version_number, snapshot: prepared_snapshot.hstore)
+        end
+
+        result
       end
     end
 

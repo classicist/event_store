@@ -35,9 +35,14 @@ module EventStore
       @last_event_of_type_query
     end
 
+    def snapshot_query
+      @snapshot_query ||=  EventStore.db.from(@snapshot_table).where(:aggregate_id => @id.to_s).limit(1)
+    end
+
     def snapshot
-      snapshot = EventStore.db.from(@snapshot_table).where(:aggregate_id => @id.to_s).limit(1)
-      snapshot = snapshot[:snapshot]
+      @snapshot = snapshot_query.first
+      return [] unless @snapshot
+      snapshot = @snapshot[:snapshot]
       cached_events = []
       snapshot.each_pair do |event_name, serialized_event|
         cached_events << EventStore::SerializedEvent.new(event_name, serialized_event)

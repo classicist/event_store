@@ -1,5 +1,6 @@
 require 'simplecov'
 require 'simplecov-rcov'
+require 'pry'
 
 class SimpleCov::Formatter::MergedFormatter
   def format(result)

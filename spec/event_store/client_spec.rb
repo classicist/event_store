@@ -81,6 +81,7 @@ describe EventStore::Client do
     before do
       @client = EventStore::Client.new(1, :device)
       @event = @client.peek
+      @old_event = EventStore::Event.new('1', DateTime.now - 200, "old", 1000.to_s(2))
       @new_event = EventStore::Event.new('1', DateTime.now, "new", 1001.to_s(2))
       set_expected_version.call(0)
     end
@@ -111,7 +112,8 @@ describe EventStore::Client do
 
         context 'snapshot' do
           it "#append should write-through cache the event in a snapshot" do
-            @client.raw_snapshot.should == 'foo'
+            @client.append([@old_event, @new_event, @new_event, @old_event])
+            @client.raw_snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new(@new_event.fully_qualified_name, @new_event.serialized_event)]
           end
         end
       end

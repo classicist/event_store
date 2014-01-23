@@ -6,7 +6,6 @@ require 'event_store/client'
 require 'event_store/errors'
 
 module EventStore
-
   Event = Struct.new(:aggregate_id, :occurred_at, :serialized_event, :fully_qualified_name)
   SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event)
 
@@ -16,5 +15,6 @@ module EventStore
 
   def self.connect(*args)
     @db = Sequel.connect(*args)
+    @db.extension :pg_hstore
   end
 end
