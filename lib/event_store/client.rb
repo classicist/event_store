@@ -16,7 +16,7 @@ module EventStore
     end
 
     def raw_event_stream
-      translate_raw_events @aggregate.events
+      @aggregate.events.all
     end
 
     def event_stream_from version_number, max=nil
@@ -32,7 +32,7 @@ module EventStore
     end
 
     def raw_snapshot
-      @aggregate.snapshot
+      @aggregate.snapshot_query.first
     end
 
     def aggregate_id

@@ -24,7 +24,7 @@ describe EventStore::Client do
 
     it 'should be for a single aggregate' do
       stream = es_client.new(1, :device).raw_event_stream
-      expect(stream.map(&:aggregate_id).all?{ |aggregate_id| aggregate_id == '1' }).to be_true
+      stream.each { |event| event[:aggregate_id].should == '1' }
     end
 
     it 'should include all events for that aggregate' do
@@ -39,10 +39,10 @@ describe EventStore::Client do
       expect(stream.empty?).to be_true
     end
 
-    it 'should be for a single aggregate' do
+    it 'should be generated for a single aggregate' do
       raw_stream = es_client.new(1, :device).raw_event_stream
       stream = es_client.new(1, :device).event_stream
-      stream.map(&:serialized_event).should == raw_stream.map(&:serialized_event)
+      stream.map(&:fully_qualified_name).should == raw_stream.inject([]){|m, event| m << event[:fully_qualified_name]; m}
     end
 
     it 'should include all events for that aggregate' do
@@ -101,7 +101,7 @@ describe EventStore::Client do
 
         context 'snapshot' do
           it "#append should write-through cache the event in a snapshot" do
-            @client.raw_snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
+            @client.current_state.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
           end
         end
       end
@@ -120,7 +120,7 @@ describe EventStore::Client do
 
         it "#append should write-through cache the event in a snapshot without duplicating events" do
           @client.append([@old_event, @old_event, @old_event])
-          @client.raw_snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
+          @client.current_state.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
         end
       end
     end
@@ -157,15 +157,21 @@ describe EventStore::Client do
     end
 
     describe 'current_state' do
-      it "finds the most recent records for each type" do
-        client = es_client.new('10', :device)
-        client.current_state.length.should == 0
+      before do
+        @client = es_client.new('10', :device)
+        @client.current_state.length.should == 0
+        @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn| EventStore::Event.new('10', DateTime.now, fqn, 234532.to_s(2)) }
+      end
 
-        client.append      %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn| EventStore::Event.new('10', DateTime.now, fqn, 234532.to_s(2)) }
+      it "finds the most recent records for each type" do
         expected_snapshot = %w{ e1 e2 e3 e4 e5 }.map {|fqn| EventStore::SerializedEvent.new(fqn, 234532.to_s(2)) }
-        client.event_stream.length.should == 10
-        client.current_state.length.should == 5
-        expect(client.current_state).to match_array(expected_snapshot)
+        @client.event_stream.length.should == 10
+        @client.current_state.length.should == 5
+        expect(@client.current_state).to match_array(expected_snapshot)
+      end
+
+      it "increments the version number of the snapshot when an event is appended" do
+        @client.raw_snapshot[:version].should == @client.raw_event_stream.last[:version]
       end
     end
 

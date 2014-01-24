@@ -8,6 +8,7 @@ module EventStore
     def append raw_events
       EventStore.db.transaction do
         prepared_snapshot = {}
+        @number_of_new_events = raw_events.length
         set_expected_version
 
         prepared_events = raw_events.map do |raw_event|
@@ -32,9 +33,9 @@ module EventStore
       snapshot_row = @aggregate.snapshot_query.first
       if snapshot_row
         updated_snapshot = snapshot_row[:snapshot].merge(prepared_snapshot.hstore)
-        @aggregate.snapshot_query.update(snapshot: updated_snapshot)
+        @aggregate.snapshot_query.update(snapshot: updated_snapshot, version: (@aggregate.last_event[:version]))
       else
-        @aggregate.snapshot_query.insert(aggregate_id: @aggregate.id, version: (expected_version + prepared_snapshot.length), snapshot: prepared_snapshot.hstore)
+        @aggregate.snapshot_query.insert(aggregate_id: @aggregate.id, version: (@aggregate.last_event[:version]), snapshot: prepared_snapshot.hstore)
       end
     end
 
@@ -70,7 +71,7 @@ module EventStore
     def expected_version
       @expected_version ||= begin
         last_event = @aggregate.last_event
-        last_event ? last_event[:version] + 1 : 0
+        last_event ? last_event[:version] + @number_of_new_events : @number_of_new_events
       end
     end
     alias :set_expected_version :expected_version
