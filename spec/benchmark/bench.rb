@@ -1,10 +1,27 @@
-require 'rspec'
 require 'event_store'
 require 'benchmark'
 
-EventStore.connect :adapter => :postgres, :database => 'event_store_performance', :host => 'localhost'
+db_config = Hash[
+    :username => 'nexia',
+    :password => 'Password1',
+    host: 'ec2-54-221-80-232.compute-1.amazonaws.com',
+    encoding: 'utf8',
+    pool: 1000,
+    adapter: :postgres,
+    database: 'event_store_performance'
+  ]
+
+EventStore.connect ( db_config )
 
 ITERATIONS = 100
+
+Benchmark.bmbm do |x|
+  x.report "Time to read #{ITERATIONS} Event Snapshots" do
+    ITERATIONS.times do
+      EventStore::Client.new(rand(300) + 1, :device).snapshot
+    end
+  end
+end
 
 Benchmark.bmbm do |x|
   x.report "Time to read #{ITERATIONS} Event Streams" do
@@ -13,3 +30,4 @@ Benchmark.bmbm do |x|
     end
   end
 end
+
