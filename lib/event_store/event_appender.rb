@@ -30,29 +30,25 @@ module EventStore
     private
 
     def store_snapshot(prepared_snapshot)
-      snapshot_row = @aggregate.snapshot_query.first
+      snapshot_row = @aggregate.snapshot
       if snapshot_row
         updated_snapshot = snapshot_row[:snapshot].merge(prepared_snapshot.hstore)
         @aggregate.snapshot_query.update(snapshot: updated_snapshot, version: (@aggregate.last_event[:version]))
       else
-        @aggregate.snapshot_query.insert(aggregate_id: @aggregate.id, version: (@aggregate.last_event[:version]), snapshot: prepared_snapshot.hstore)
+        @aggregate.snapshot_query.insert(aggregate_id: @aggregate.id, version: version_of_last_event, snapshot: prepared_snapshot.hstore)
       end
     end
 
     def has_concurrency_issue? event
       if concurrency_issue_possible?
-        last_event_of_type = @aggregate.last_event_of_type(event[:fully_qualified_name])
-        last_event_of_type && expected_version < last_event_of_type[:version]
+        expected_version < version_of_last_event_of_type(event)
       else
         false
       end
     end
 
     def concurrency_issue_possible?
-      @potential_concurrency_issue ||= begin
-        last_event = @aggregate.last_event
-        last_event && expected_version < last_event[:version]
-      end
+      @potential_concurrency_issue ||= expected_version < version_of_last_event
     end
 
     def prepare_event raw_event
@@ -68,11 +64,18 @@ module EventStore
 
     private
 
+    def version_of_last_event
+      last_event = @aggregate.last_event
+      last_event ? @aggregate.last_event[:version] : 0
+    end
+
+    def version_of_last_event_of_type(event)
+      last_event_of_type = @aggregate.last_event_of_type(event[:fully_qualified_name])
+      last_event_of_type ? last_event_of_type[:version] : 0
+    end
+
     def expected_version
-      @expected_version ||= begin
-        last_event = @aggregate.last_event
-        last_event ? last_event[:version] + @number_of_new_events : @number_of_new_events
-      end
+      @expected_version ||= version_of_last_event + @number_of_new_events
     end
     alias :set_expected_version :expected_version
 

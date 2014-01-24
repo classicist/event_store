@@ -11,12 +11,13 @@ module EventStore
       nil
     end
 
-    def event_stream
-      translate_events @aggregate.events
+    def snapshot
+      snapshot = @aggregate.snapshot || {}
+      translate_snapshot(snapshot[:snapshot] || {})
     end
 
-    def raw_event_stream
-      @aggregate.events.all
+    def event_stream
+      translate_events @aggregate.events
     end
 
     def event_stream_from version_number, max=nil
@@ -27,20 +28,12 @@ module EventStore
       translate_event @aggregate.last_event
     end
 
-    def current_state
-      @aggregate.snapshot
-    end
-
     def raw_snapshot
-      @aggregate.snapshot_query.first
+      @aggregate.snapshot || {}
     end
 
-    def aggregate_id
-      @aggregate.id
-    end
-
-    def current_version(type)
-      @aggregate.last_event_of_type(type)[:version]
+    def raw_event_stream
+      @aggregate.events.all
     end
 
     private
@@ -57,8 +50,10 @@ module EventStore
       SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event]
     end
 
-    def translate_raw_events(event_hashs)
-      event_hashs.map { |eh| Event.new eh[:aggregate_id], eh[:occurred_at], eh[:fully_qualified_name], eh[:serialized_event] }
+    def translate_snapshot(snapshot_hash)
+      events = []
+      snapshot_hash.each_pair {|fully_qualified_name, serialized_event| events << translate_event(fully_qualified_name: fully_qualified_name, serialized_event: serialized_event)}
+      events
     end
   end
 end

@@ -42,7 +42,7 @@ end
 iterations.times do
   loads_per_iteration.times do
     client = EventStore::Client.new(rand(300)+1, :device)
-    client.current_state
+    client.snapshot
   end
   output_gc_data
 end

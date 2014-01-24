@@ -101,7 +101,7 @@ describe EventStore::Client do
 
         context 'snapshot' do
           it "#append should write-through cache the event in a snapshot" do
-            @client.current_state.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
+            @client.snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
           end
         end
       end
@@ -120,7 +120,7 @@ describe EventStore::Client do
 
         it "#append should write-through cache the event in a snapshot without duplicating events" do
           @client.append([@old_event, @old_event, @old_event])
-          @client.current_state.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
+          @client.snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
         end
       end
     end
@@ -156,18 +156,18 @@ describe EventStore::Client do
       end
     end
 
-    describe 'current_state' do
+    describe 'snapshot' do
       before do
         @client = es_client.new('10', :device)
-        @client.current_state.length.should == 0
+        @client.snapshot.length.should == 0
         @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn| EventStore::Event.new('10', DateTime.now, fqn, 234532.to_s(2)) }
       end
 
       it "finds the most recent records for each type" do
         expected_snapshot = %w{ e1 e2 e3 e4 e5 }.map {|fqn| EventStore::SerializedEvent.new(fqn, 234532.to_s(2)) }
         @client.event_stream.length.should == 10
-        @client.current_state.length.should == 5
-        expect(@client.current_state).to match_array(expected_snapshot)
+        @client.snapshot.length.should == 5
+        expect(@client.snapshot).to match_array(expected_snapshot)
       end
 
       it "increments the version number of the snapshot when an event is appended" do
