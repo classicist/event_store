@@ -12,12 +12,11 @@ module EventStore
     end
 
     def snapshot
-      snapshot = @aggregate.snapshot || {}
-      translate_snapshot(snapshot[:snapshot] || {})
+      translate_snapshot(raw_snapshot[:snapshot] || {})
     end
 
     def event_stream
-      translate_events @aggregate.events
+      translate_events raw_event_stream
     end
 
     def event_stream_from version_number, max=nil
