@@ -1,6 +1,8 @@
 module EventStore
   class Aggregate
 
+    attr_reader :id
+
     def initialize id, type
       @id = id
       @type = type
@@ -20,19 +22,13 @@ module EventStore
       events.limit(1).last
     end
 
-    def last_event_of_type(fully_qualified_name)
-      events.where(fully_qualified_name: fully_qualified_name).order(:version).limit(1).last
+    def current_version
+      latest_snapshot = snapshot_query.order(:version).last
+      latest_snapshot ? latest_snapshot[:version] : -1
     end
 
-    def last_event_of_each_type
-      #Order of magnitude faster than a group by query
-      @last_event_of_type_query ||= EventStore.db.fetch(
-      "SELECT event_1.*
-        FROM #{@event_table} event_1 LEFT JOIN #{@event_table} event_2
-        ON (event_1.fully_qualified_name = event_2.fully_qualified_name AND event_1.version < event_2.version)
-        WHERE  event_1.aggregate_id = '#{@id}' AND event_2.version IS NULL;"
-      )
-      @last_event_of_type_query
+    def last_event_of_type(fully_qualified_name)
+      snapshot_query.where("snapshot ? '#{fully_qualified_name}'").first
     end
 
     def snapshot_query

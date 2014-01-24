@@ -1,22 +1,20 @@
 require_relative '../spec_helper'
 require 'ostruct'
 
-# Forgive me
-set_expected_version = ->(version_number) {
-  EventStore::EventAppender.class_eval(
-    %Q(def expected_version; #{version_number}; end)
-  )
-}
-
 describe EventStore::Client do
-  before do
-    agg = EventStore::Aggregate.new(1, :device)
-    ([1]*10 + [2]*10).shuffle.each do |aggregate_id|
-      agg.events.insert :aggregate_id => aggregate_id, :occurred_at => DateTime.now, :serialized_event => 234532.to_s(2), :fully_qualified_name => 'event_name'
-    end
-  end
-
   let(:es_client) { EventStore::Client }
+
+  before do
+    client_1 = es_client.new('1', :device)
+    client_2 = es_client.new('2', :device)
+
+    events_by_aggregate_id  = {'1' => [], '2' => []}
+    ([1]*10 + [2]*10).shuffle.each do |aggregate_id|
+      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, DateTime.now, 'event_name', 234532.to_s(2))
+    end
+    client_1.append events_by_aggregate_id['1']
+    client_2.append events_by_aggregate_id['2']
+  end
 
   describe 'raw event streams' do
     it 'should be empty for aggregates without events' do
@@ -79,49 +77,50 @@ describe EventStore::Client do
 
   describe '#append' do
     before do
-      @client = EventStore::Client.new(1, :device)
+      @client = EventStore::Client.new('1', :device)
       @event = @client.peek
+      @duplicate_event = EventStore::Event.new('1', DateTime.now, 'duplicate', 12.to_s(2))
       @old_event = EventStore::Event.new('1', DateTime.now - 200, "old", 1000.to_s(2))
-      @new_event = EventStore::Event.new('1', DateTime.now, "new", 1001.to_s(2))
-      set_expected_version.call(0)
+      @new_event = EventStore::Event.new('1', DateTime.now - 100, "new", 1001.to_s(2))
+      @really_new_event = EventStore::Event.new('1', DateTime.now, "really_new", 1002.to_s(2))
     end
 
     describe "expected version number < last version" do
-      describe 'type mismatch' do
-        it 'should raise an error' do
-          @client.instance_variable_get('@aggregate').events.insert(:fully_qualified_name => 'duplicate', :aggregate_id => 1, :occurred_at => DateTime.now, :serialized_event => 12.to_s(2))
-          @new_event.fully_qualified_name = "duplicate"
-
-          expect { @client.append([@new_event]) }.to raise_error(EventStore::ConcurrencyError)
-        end
-      end
-
       describe 'no prior events of type' do
         before do
-          @client.instance_variable_get('@aggregate').events.insert(:fully_qualified_name => 'old', :aggregate_id => 1, :occurred_at => DateTime.now, :serialized_event => 12.to_s(2))
-          set_expected_version.call(0)
+          @client.append([@old_event])
         end
 
         it 'should succeed' do
-          expect(@client.append([@new_event])).to be_nil
+          expect(@client.append([@new_event])).to_not raise_error
         end
 
         it 'should succeed with multiple events of the same type' do
-          expect(@client.append([@new_event, @new_event])).to be_nil
+          expect(@client.append([@new_event, @new_event])).to_not raise_error
         end
 
         context 'snapshot' do
           it "#append should write-through cache the event in a snapshot" do
-            @client.append([@old_event, @new_event, @new_event, @old_event])
-            @client.raw_snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new(@new_event.fully_qualified_name, @new_event.serialized_event)]
+            @client.raw_snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
           end
         end
       end
 
       describe 'with prior events of same type' do
         it 'should raise an error' do
-          @client.append([@new_event])
-          expect { @client.append([@new_event]) }.to raise_error(EventStore::ConcurrencyError)
+          @client.append([@duplicate_event])
+          reset_expected_version_in(@client)
+          expect { @client.append([@duplicate_event]) }.to raise_error(EventStore::ConcurrencyError)
+        end
+
+        it 'should not raise an error' do
+          @client.append([@duplicate_event])
+          expect { @client.append([@duplicate_event]) }.to_not raise_error
+        end
+
+        it "#append should write-through cache the event in a snapshot without duplicating events" do
+          @client.append([@old_event, @old_event, @old_event])
+          @client.raw_snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
         end
       end
     end
@@ -130,7 +129,6 @@ describe EventStore::Client do
       before do
         @bad_event = @new_event.dup
         @bad_event.fully_qualified_name = nil
-        set_expected_version.call(1000)
       end
 
       it 'should revert all append events if one fails' do
@@ -160,21 +158,24 @@ describe EventStore::Client do
 
     describe 'current_state' do
       it "finds the most recent records for each type" do
-        aggregate = EventStore::Aggregate.new(10, :device)
-        %w{ e1 e2 e3 e1 }.each do |fqn|
-          aggregate.events.insert :aggregate_id => 10, :occurred_at => DateTime.now, :serialized_event => 234532.to_s(2), :fully_qualified_name => fqn
-        end
-        events_we_expect = %w{ e1 e2 e3 e4 e5 }.map do |fqn|
-          aggregate.events.insert :aggregate_id => 10, :occurred_at => DateTime.now, :serialized_event => 234532.to_s(2), :fully_qualified_name => fqn
-          last_event = aggregate.events.last
-          EventStore::SerializedEvent.new(last_event[:fully_qualified_name], last_event[:serialized_event])
-        end
-        client = es_client.new(10, :device)
+        client = es_client.new('10', :device)
+        client.current_state.length.should == 0
+
+        client.append      %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn| EventStore::Event.new('10', DateTime.now, fqn, 234532.to_s(2)) }
+        expected_snapshot = %w{ e1 e2 e3 e4 e5 }.map {|fqn| EventStore::SerializedEvent.new(fqn, 234532.to_s(2)) }
+        client.event_stream.length.should == 10
         client.current_state.length.should == 5
-        expect(client.current_state).to match_array(events_we_expect)
+        expect(client.current_state).to match_array(expected_snapshot)
       end
     end
 
-  end
 
+    def reset_expected_version_in(client)
+      client.define_singleton_method(:event_appender) do
+        @event_appender ||= EventStore::EventAppender.new(@aggregate)
+        @event_appender.define_singleton_method(:expected_version) {@expected_version = 0}
+        @event_appender
+      end
+    end
+  end
 end

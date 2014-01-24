@@ -6,7 +6,7 @@ require 'event_store/client'
 require 'event_store/errors'
 
 module EventStore
-  Event = Struct.new(:aggregate_id, :occurred_at, :serialized_event, :fully_qualified_name)
+  Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :serialized_event)
   SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event)
 
   def self.db

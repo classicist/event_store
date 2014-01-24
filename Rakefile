@@ -1,8 +1,9 @@
 require 'rspec/core/rake_task'
 
-RSpec::Core::RakeTask.new(:spec)
+RSpec::Core::RakeTask.new(:'spec:ci')
 
-task :default => :spec
+task :default => :'spec:ci'
+
 
 desc "one-time install for hstore extension in postgres"
 task :'db:install_hstore' do

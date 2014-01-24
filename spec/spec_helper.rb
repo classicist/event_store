@@ -30,5 +30,6 @@ EventStore.connect :adapter => :postgres, :database => 'event_store_test', host:
 RSpec.configure do |config|
   config.after(:each) do
     EventStore.db.from(:device_events).delete
+    EventStore.db.from(:device_snapshots).delete
   end
 end

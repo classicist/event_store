@@ -6,7 +6,7 @@ module EventStore
     end
 
     def append event_data
-      EventAppender.new(@aggregate).append(event_data)
+      event_appender.append(event_data)
       yield(event_data) if block_given?
       nil
     end
@@ -28,14 +28,26 @@ module EventStore
     end
 
     def current_state
-      translate_events @aggregate.last_event_of_each_type
+      @aggregate.snapshot
     end
 
     def raw_snapshot
       @aggregate.snapshot
     end
 
+    def aggregate_id
+      @aggregate.id
+    end
+
+    def current_version(type)
+      @aggregate.last_event_of_type(type)[:version]
+    end
+
     private
+
+    def event_appender
+      EventAppender.new(@aggregate)
+    end
 
     def translate_events(event_hashs)
       event_hashs.map { |eh| translate_event(eh) }
@@ -46,7 +58,7 @@ module EventStore
     end
 
     def translate_raw_events(event_hashs)
-      event_hashs.map { |eh| Event.new eh[:aggregate_id], eh[:occurred_at], eh[:serialized_event], eh[:fully_qualified_name] }
+      event_hashs.map { |eh| Event.new eh[:aggregate_id], eh[:occurred_at], eh[:fully_qualified_name], eh[:serialized_event] }
     end
   end
 end
