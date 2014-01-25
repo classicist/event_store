@@ -1,4 +1,5 @@
 require 'sequel'
+require 'redis'
 require 'event_store/version'
 require 'event_store/event_appender'
 require 'event_store/aggregate'
@@ -13,8 +14,16 @@ module EventStore
     @db
   end
 
+  def self.redis
+    @redis
+  end
+
   def self.connect(*args)
     @db = Sequel.connect(*args)
     @db.extension :pg_hstore
+  end
+
+  def self.redis_connect(config_hash)
+    @redis = Redis.new(config_hash)
   end
 end

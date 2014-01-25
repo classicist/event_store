@@ -22,7 +22,7 @@ module EventStore
         # All concurrency issues need to be checked before persisting any of the events
         # Otherwise, the newly appended events may raise erroneous concurrency errors
         result = @aggregate.events.multi_insert(prepared_events)
-        store_snapshot(prepared_snapshot)
+        store_snapshot(prepared_snapshot) if result
         result
       end
     end
@@ -33,7 +33,7 @@ module EventStore
       snapshot_row = @aggregate.snapshot
       if snapshot_row
         updated_snapshot = snapshot_row[:snapshot].merge(prepared_snapshot.hstore)
-        @aggregate.snapshot_query.update(snapshot: updated_snapshot, version: (@aggregate.last_event[:version]))
+        @aggregate.snapshot_query.update(snapshot: updated_snapshot, version: version_of_last_event)
       else
         @aggregate.snapshot_query.insert(aggregate_id: @aggregate.id, version: version_of_last_event, snapshot: prepared_snapshot.hstore)
       end

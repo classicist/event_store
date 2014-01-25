@@ -12,57 +12,104 @@ describe EventStore::Client do
     ([1]*10 + [2]*10).shuffle.each do |aggregate_id|
       events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, DateTime.now, 'event_name', 234532.to_s(2))
     end
+    client_2.append events_by_aggregate_id['2'] #should be first
     client_1.append events_by_aggregate_id['1']
-    client_2.append events_by_aggregate_id['2']
   end
 
-  describe 'raw event streams' do
+  describe '#raw_event_stream' do
+    it "should be an array of hashes that represent database records, not EventStore::SerializedEvent objects" do
+      raw_stream = es_client.new(1, :device).raw_event_stream
+      raw_stream.class.should == Array
+      raw_event = raw_stream.first
+      raw_event.class.should == Hash
+      raw_event.keys.should == [:version, :aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event]
+    end
+
     it 'should be empty for aggregates without events' do
       stream = es_client.new(100, :device).raw_event_stream
       expect(stream.empty?).to be_true
     end
 
-    it 'should be for a single aggregate' do
+    it 'should only have events for a single aggregate' do
       stream = es_client.new(1, :device).raw_event_stream
       stream.each { |event| event[:aggregate_id].should == '1' }
     end
 
-    it 'should include all events for that aggregate' do
+    it 'should have all events for that aggregate' do
       stream = es_client.new(1, :device).raw_event_stream
       expect(stream.count).to eq(10)
     end
   end
 
-  describe 'event streams' do
+  describe '#event_stream' do
+    it "should be an array of EventStore::SerializedEvent objects" do
+      stream = es_client.new(1, :device).event_stream
+      stream.class.should == Array
+      event = stream.first
+      event.class.should == EventStore::SerializedEvent
+    end
+
     it 'should be empty for aggregates without events' do
       stream = es_client.new(100, :device).raw_event_stream
       expect(stream.empty?).to be_true
     end
 
-    it 'should be generated for a single aggregate' do
+    it 'should only have events for a single aggregate' do
       raw_stream = es_client.new(1, :device).raw_event_stream
       stream = es_client.new(1, :device).event_stream
       stream.map(&:fully_qualified_name).should == raw_stream.inject([]){|m, event| m << event[:fully_qualified_name]; m}
     end
 
-    it 'should include all events for that aggregate' do
+    it 'should have all events for that aggregate' do
       stream = es_client.new(1, :device).event_stream
       expect(stream.count).to eq(10)
     end
   end
 
 
-  describe 'event streams from version' do
+  describe '#raw_event_streams_from_version' do
     subject { es_client.new(1, :device) }
 
-    it 'should respect the max, if specified' do
-      stream = subject.event_stream_from(2, 5)
-      expect(stream.count).to eq(5)
+    it 'should return all the raw events in the stream starting from a certain version' do
+      minimum_event_version = 2
+      raw_stream = subject.raw_event_stream_from(minimum_event_version)
+      event_versions = raw_stream.inject([]){|m, event| m << event[:version]; m}
+      event_versions.min.should >= minimum_event_version
+    end
+
+    it 'should return no more than the maximum number of events specified above the ' do
+      max_number_of_events  = 5
+      minimum_event_version = 2
+      raw_stream = subject.raw_event_stream_from(minimum_event_version, max_number_of_events)
+      expect(raw_stream.count).to eq(max_number_of_events)
     end
 
     it 'should be empty for version above the current highest version number' do
-      stream = subject.event_stream_from(123456)
-      expect(stream).to be_empty
+      raw_stream = subject.raw_event_stream_from(subject.version + 1)
+      expect(raw_stream).to be_empty
+    end
+  end
+
+  describe 'event_stream_from_version' do
+    subject { es_client.new(1, :device) }
+
+    it 'should return all the raw events in the stream starting from a certain version' do
+      minimum_event_version = 2
+      raw_stream = subject.raw_event_stream_from(minimum_event_version)
+      event_versions = raw_stream.inject([]){|m, event| m << event[:version]; m}
+      event_versions.min.should >= minimum_event_version
+    end
+
+    it 'should return no more than the maximum number of events specified above the ' do
+      max_number_of_events  = 5
+      minimum_event_version = 2
+      raw_stream = subject.raw_event_stream_from(minimum_event_version, max_number_of_events)
+      expect(raw_stream.count).to eq(max_number_of_events)
+    end
+
+    it 'should be empty for version above the current highest version number' do
+      raw_stream = subject.raw_event_stream_from(subject.version + 1)
+      expect(raw_stream).to be_empty
     end
   end
 
@@ -85,42 +132,87 @@ describe EventStore::Client do
       @really_new_event = EventStore::Event.new('1', DateTime.now, "really_new", 1002.to_s(2))
     end
 
-    describe "expected version number < last version" do
-      describe 'no prior events of type' do
+    describe "when expected version number is greater than the last version" do
+      describe 'and there are no prior events of type' do
         before do
           @client.append([@old_event])
         end
 
-        it 'should succeed' do
-          expect(@client.append([@new_event])).to_not raise_error
+        it 'should append a single event of a new type without raising an error' do
+          initial_count = @client.count
+          events = [@new_event]
+          @client.append(events)
+          @client.count.should == initial_count + events.length
         end
 
-        it 'should succeed with multiple events of the same type' do
-          expect(@client.append([@new_event, @new_event])).to_not raise_error
+        it 'should append multiple events of a new type without raising and error' do
+          initial_count = @client.count
+          events = [@new_event, @new_event]
+          @client.append(events)
+          @client.count.should == initial_count + events.length
         end
 
-        context 'snapshot' do
-          it "#append should write-through cache the event in a snapshot" do
-            @client.snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
-          end
+        it "#append should write-through cache the event in a snapshot" do
+          @client.snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
+        end
+
+        it "should increment the version number by the number of events added" do
+          events = [@new_event, @really_new_event]
+          initial_version = @client.version
+          @client.append(events)
+          @client.version.should == (initial_version + events.length)
+        end
+
+        it "should set the snapshot version number to match that of the last event in the aggregate's event stream" do
+          events = [@new_event, @really_new_event]
+          initial_stream_version = @client.raw_event_stream.last[:version]
+          @client.raw_snapshot[:version].should == initial_stream_version
+          @client.append(events)
+          updated_stream_version = @client.raw_event_stream.last[:version]
+          @client.raw_snapshot[:version].should == updated_stream_version
+        end
+
+        xit "should write-through-cache the event in a snapshot without duplicating events" do
+          @client.destroy!
+          @client.append([@old_event, @new_event, @really_new_event])
+          @client.snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event),
+                                       EventStore::SerializedEvent.new(@new_event.fully_qualified_name, @new_event.serialized_event),
+                                       EventStore::SerializedEvent.new(@really_new_event.fully_qualified_name, @really_new_event.serialized_event),
+                                     ]
         end
       end
 
       describe 'with prior events of same type' do
-        it 'should raise an error' do
+        it 'should raise a ConcurrencyError if the expected version is greater than the event version' do
           @client.append([@duplicate_event])
           reset_expected_version_in(@client)
           expect { @client.append([@duplicate_event]) }.to raise_error(EventStore::ConcurrencyError)
         end
 
-        it 'should not raise an error' do
+        it 'should not raise an error when two events of the same type are appended' do
           @client.append([@duplicate_event])
-          expect { @client.append([@duplicate_event]) }.to_not raise_error
+          @client.append([@duplicate_event]) #will fail automatically if it throws an error, no need for assertions (which now print warning for some reason)
         end
 
-        it "#append should write-through cache the event in a snapshot without duplicating events" do
+        it "should write-through-cache the event in a snapshot without duplicating events" do
           @client.append([@old_event, @old_event, @old_event])
           @client.snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
+        end
+
+        it "should increment the version number by the number of events added" do
+          events = [@old_event, @old_event, @old_event]
+          initial_version = @client.version
+          @client.append(events)
+          @client.version.should == (initial_version + events.length)
+        end
+
+        it "should set the snapshot version number to match that of the last event in the aggregate's event stream" do
+          events = [@old_event, @old_event]
+          initial_stream_version = @client.raw_event_stream.last[:version]
+          @client.raw_snapshot[:version].should == initial_stream_version
+          @client.append(events)
+          updated_stream_version = @client.raw_event_stream.last[:version]
+          @client.raw_snapshot[:version].should == updated_stream_version
         end
       end
     end

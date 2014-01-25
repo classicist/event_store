@@ -26,10 +26,12 @@ end
 Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'))
 
 EventStore.connect :adapter => :postgres, :database => 'event_store_test', host: 'localhost'
+EventStore.redis_connect host: 'localhost'
 
 RSpec.configure do |config|
   config.after(:each) do
     EventStore.db.from(:device_events).delete
     EventStore.db.from(:device_snapshots).delete
+    EventStore.redis.flushall
   end
 end

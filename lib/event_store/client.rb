@@ -35,6 +35,24 @@ module EventStore
       @aggregate.events.all
     end
 
+    def raw_event_stream_from version_number, max=nil
+      @aggregate.events_from(version_number, max)
+    end
+
+    def version
+      v = raw_snapshot[:version]
+      v.nil? ? 0 : v
+    end
+
+    def count
+      event_stream.length
+    end
+
+    def destroy!
+      @aggregate.events.delete
+      @aggregate.snapshot.delete
+    end
+
     private
 
     def event_appender
