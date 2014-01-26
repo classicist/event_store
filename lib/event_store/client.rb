@@ -5,6 +5,14 @@ module EventStore
       @aggregate = Aggregate.new(aggregate_id, aggregate_type)
     end
 
+    def id
+      @aggregate.id
+    end
+
+    def type
+      @aggregate.type
+    end
+
     def append event_data
       event_appender.append(event_data)
       yield(event_data) if block_given?
@@ -12,7 +20,7 @@ module EventStore
     end
 
     def snapshot
-      translate_snapshot(raw_snapshot[:snapshot] || {})
+      raw_snapshot
     end
 
     def event_stream
@@ -28,7 +36,7 @@ module EventStore
     end
 
     def raw_snapshot
-      @aggregate.snapshot || {}
+      @aggregate.snapshot || []
     end
 
     def raw_event_stream
@@ -40,8 +48,7 @@ module EventStore
     end
 
     def version
-      v = raw_snapshot[:version]
-      v.nil? ? 0 : v
+      @aggregate.version
     end
 
     def count
@@ -50,7 +57,7 @@ module EventStore
 
     def destroy!
       @aggregate.events.delete
-      @aggregate.snapshot.delete
+      @aggregate.delete_snapshot
     end
 
     private
@@ -64,13 +71,7 @@ module EventStore
     end
 
     def translate_event(event_hash)
-      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event]
-    end
-
-    def translate_snapshot(snapshot_hash)
-      events = []
-      snapshot_hash.each_pair {|fully_qualified_name, serialized_event| events << translate_event(fully_qualified_name: fully_qualified_name, serialized_event: serialized_event)}
-      events
+      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version]
     end
   end
 end

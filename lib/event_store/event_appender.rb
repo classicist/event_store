@@ -10,56 +10,54 @@ module EventStore
         prepared_snapshot = {}
         @number_of_new_events = raw_events.length
         set_expected_version
+        current_version = version_of_last_event
 
         prepared_events = raw_events.map do |raw_event|
-          event = prepare_event(raw_event)
+          current_version += 1
+          event = prepare_event(raw_event, current_version)
           validate! event
-          prepared_snapshot[raw_event.fully_qualified_name] = raw_event.serialized_event
-          raise concurrency_error if has_concurrency_issue?(event)
+          raise concurrency_error(event) if has_concurrency_issue?(event)
           event
         end
 
         # All concurrency issues need to be checked before persisting any of the events
         # Otherwise, the newly appended events may raise erroneous concurrency errors
         result = @aggregate.events.multi_insert(prepared_events)
-        store_snapshot(prepared_snapshot) if result
+        store_snapshot(prepared_events) if result
         result
       end
     end
 
     private
 
-    def store_snapshot(prepared_snapshot)
-      snapshot_row = @aggregate.snapshot
-      if snapshot_row
-        updated_snapshot = snapshot_row[:snapshot].merge(prepared_snapshot.hstore)
-        @aggregate.snapshot_query.update(snapshot: updated_snapshot, version: version_of_last_event)
-      else
-        @aggregate.snapshot_query.insert(aggregate_id: @aggregate.id, version: version_of_last_event, snapshot: prepared_snapshot.hstore)
+    def store_snapshot(prepared_events)
+      prepared_events.each do |event|
+        r = EventStore.redis
+        old_version_number = r.hget(@aggregate.snapshot_table, event[:fully_qualified_name]) || -1
+        r.multi do
+          if old_version_number.to_i < event[:version].to_i
+            r.hset(@aggregate.snapshot_table, event[:fully_qualified_name], event[:version].to_s)
+            r.hset(@aggregate.snapshot_version_table, event[:version].to_s, event[:serialized_event])
+            r.hdel(@aggregate.snapshot_version_table, old_version_number.to_s)
+          end
+        end
       end
     end
 
     def has_concurrency_issue? event
-      if concurrency_issue_possible?
-        expected_version < version_of_last_event_of_type(event)
-      else
-        false
-      end
+      expected_version < event[:version]
     end
 
-    def concurrency_issue_possible?
-      @potential_concurrency_issue ||= expected_version < version_of_last_event
-    end
-
-    def prepare_event raw_event
-      { :aggregate_id         => raw_event.aggregate_id,
+    def prepare_event raw_event, version
+      { :version              => version,
+        :aggregate_id         => raw_event.aggregate_id,
         :occurred_at          => raw_event.occurred_at,
         :serialized_event     => raw_event.serialized_event,
         :fully_qualified_name => raw_event.fully_qualified_name }
     end
 
-    def concurrency_error
-      ConcurrencyError.new("Expected version #{expected_version} does not occur after last version")
+    def concurrency_error event
+      ConcurrencyError.new("Expected version #{expected_version} does not occur after last version #{event[:version]}")
     end
 
     private
@@ -67,11 +65,6 @@ module EventStore
     def version_of_last_event
       last_event = @aggregate.last_event
       last_event ? @aggregate.last_event[:version] : 0
-    end
-
-    def version_of_last_event_of_type(event)
-      last_event_of_type = @aggregate.last_event_of_type(event[:fully_qualified_name])
-      last_event_of_type ? last_event_of_type[:version] : 0
     end
 
     def expected_version

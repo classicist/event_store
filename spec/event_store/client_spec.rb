@@ -22,7 +22,7 @@ describe EventStore::Client do
       raw_stream.class.should == Array
       raw_event = raw_stream.first
       raw_event.class.should == Hash
-      raw_event.keys.should == [:version, :aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event]
+      raw_event.keys.should == [:id, :version, :aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event]
     end
 
     it 'should be empty for aggregates without events' do
@@ -109,7 +109,7 @@ describe EventStore::Client do
 
     it 'should be empty for version above the current highest version number' do
       raw_stream = subject.raw_event_stream_from(subject.version + 1)
-      expect(raw_stream).to be_empty
+      raw_stream.should == []
     end
   end
 
@@ -118,7 +118,7 @@ describe EventStore::Client do
 
     it 'should return the last event in the event stream' do
       last_event = EventStore.db.from(:device_events).where(aggregate_id: '1').order(:version).last
-      expect(subject).to eq(EventStore::SerializedEvent.new(last_event[:fully_qualified_name], last_event[:serialized_event]))
+      expect(subject).to eq(EventStore::SerializedEvent.new(last_event[:fully_qualified_name], last_event[:serialized_event], last_event[:version]))
     end
   end
 
@@ -152,10 +152,6 @@ describe EventStore::Client do
           @client.count.should == initial_count + events.length
         end
 
-        it "#append should write-through cache the event in a snapshot" do
-          @client.snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
-        end
-
         it "should increment the version number by the number of events added" do
           events = [@new_event, @really_new_event]
           initial_version = @client.version
@@ -166,19 +162,16 @@ describe EventStore::Client do
         it "should set the snapshot version number to match that of the last event in the aggregate's event stream" do
           events = [@new_event, @really_new_event]
           initial_stream_version = @client.raw_event_stream.last[:version]
-          @client.raw_snapshot[:version].should == initial_stream_version
+          @client.snapshot.last.version.should == initial_stream_version
           @client.append(events)
           updated_stream_version = @client.raw_event_stream.last[:version]
-          @client.raw_snapshot[:version].should == updated_stream_version
+          @client.snapshot.last.version.should == updated_stream_version
         end
 
-        xit "should write-through-cache the event in a snapshot without duplicating events" do
+        it "should write-through-cache the event in a snapshot without duplicating events" do
           @client.destroy!
           @client.append([@old_event, @new_event, @really_new_event])
-          @client.snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event),
-                                       EventStore::SerializedEvent.new(@new_event.fully_qualified_name, @new_event.serialized_event),
-                                       EventStore::SerializedEvent.new(@really_new_event.fully_qualified_name, @really_new_event.serialized_event),
-                                     ]
+          @client.snapshot.should == @client.event_stream
         end
       end
 
@@ -195,8 +188,12 @@ describe EventStore::Client do
         end
 
         it "should write-through-cache the event in a snapshot without duplicating events" do
-          @client.append([@old_event, @old_event, @old_event])
-          @client.snapshot.should == [EventStore::SerializedEvent.new(@old_event.fully_qualified_name, @old_event.serialized_event), EventStore::SerializedEvent.new('event_name', 234532.to_s(2))]
+          @client.destroy!
+          @client.append([@old_event, @new_event, @new_event])
+          expected =  []
+          expected << @client.event_stream.first
+          expected << @client.event_stream.last
+          @client.snapshot.should == expected
         end
 
         it "should increment the version number by the number of events added" do
@@ -209,10 +206,10 @@ describe EventStore::Client do
         it "should set the snapshot version number to match that of the last event in the aggregate's event stream" do
           events = [@old_event, @old_event]
           initial_stream_version = @client.raw_event_stream.last[:version]
-          @client.raw_snapshot[:version].should == initial_stream_version
+          @client.snapshot.last.version.should == initial_stream_version
           @client.append(events)
           updated_stream_version = @client.raw_event_stream.last[:version]
-          @client.raw_snapshot[:version].should == updated_stream_version
+          @client.snapshot.last.version.should == updated_stream_version
         end
       end
     end
@@ -254,16 +251,26 @@ describe EventStore::Client do
         @client.snapshot.length.should == 0
         @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn| EventStore::Event.new('10', DateTime.now, fqn, 234532.to_s(2)) }
       end
-
+require 'set'
       it "finds the most recent records for each type" do
-        expected_snapshot = %w{ e1 e2 e3 e4 e5 }.map {|fqn| EventStore::SerializedEvent.new(fqn, 234532.to_s(2)) }
+        fake_version = "0"
+        expected_snapshot = %w{ e1 e2 e3 e4 e5 }.map {|fqn| EventStore::SerializedEvent.new(fqn, 234532.to_s(2), fake_version) }
         @client.event_stream.length.should == 10
-        @client.snapshot.length.should == 5
-        expect(@client.snapshot).to match_array(expected_snapshot)
+        actual_snapshot = @client.snapshot
+        actual_snapshot.length.should == 5
+        actual_snapshot.map(&:fully_qualified_name).should == ["e3", "e1", "e2", "e5", "e4"] #sorted by version no
+        actual_snapshot.map(&:serialized_event).should == expected_snapshot.map(&:serialized_event)
+        most_recent_events_of_each_type = {}
+        @client.event_stream.each do |e|
+          if most_recent_events_of_each_type[e.fully_qualified_name].nil? || most_recent_events_of_each_type[e.fully_qualified_name].version < e.version
+            most_recent_events_of_each_type[e.fully_qualified_name] = e
+          end
+        end
+        actual_snapshot.map(&:version).should == most_recent_events_of_each_type.values.map(&:version).sort
       end
 
       it "increments the version number of the snapshot when an event is appended" do
-        @client.raw_snapshot[:version].should == @client.raw_event_stream.last[:version]
+        @client.snapshot.last.version.should == @client.raw_event_stream.last[:version]
       end
     end
 

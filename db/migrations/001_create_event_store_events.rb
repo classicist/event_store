@@ -2,7 +2,8 @@ DB.extension :pg_hstore
 Sequel.migration do
   change do
     create_table(:device_events) do
-      primary_key :version
+      primary_key :id
+      Bignum      :version
       index       :version
       String      :aggregate_id
       index       :aggregate_id
@@ -11,13 +12,6 @@ Sequel.migration do
       DateTime    :occurred_at
       index       :occurred_at
       bytea       :serialized_event
-    end
-
-    create_table(:device_snapshots) do
-      Bignum      :version
-      String      :aggregate_id, primary_key: true
-      index       :aggregate_id, unique: true
-      column      :snapshot, :hstore
     end
   end
 end
