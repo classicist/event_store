@@ -32,10 +32,10 @@ module EventStore
 
     def store_snapshot(prepared_events)
       r = EventStore.redis
+      old_version_numbers = r.hgetall(@aggregate.snapshot_version_table)
       prepared_events.each do |event|
-        old_version_number = r.hget(@aggregate.snapshot_version_table, event[:fully_qualified_name]) || -1
         r.multi do
-          if event[:version].to_i > old_version_number.to_i
+          if event[:version].to_i > old_version_numbers[event[:fully_qualified_name]].to_i
             r.hset(@aggregate.snapshot_version_table, event[:fully_qualified_name], event[:version].to_s)
             r.hset(@aggregate.snapshot_table, event[:fully_qualified_name].to_s, event[:version].to_s + EventStore::SNAPSHOT_DELIMITER + event[:serialized_event])
           end

@@ -19,7 +19,7 @@ ITERATIONS = 1000
 Benchmark.bmbm do |x|
   x.report "Time to read #{ITERATIONS} Event Snapshots" do
     ITERATIONS.times do
-      EventStore::Client.new(rand(10) + 1, :device).snapshot
+      EventStore::Client.new(rand(200) + 1, :device).snapshot
     end
   end
 end
@@ -27,7 +27,7 @@ end
 Benchmark.bmbm do |x|
   x.report "Time to read #{ITERATIONS} Event Streams" do
     ITERATIONS.times do
-      EventStore::Client.new(rand(199) + 1, :device).event_stream
+      EventStore::Client.new(rand(200) + 1, :device).event_stream
     end
   end
 end
