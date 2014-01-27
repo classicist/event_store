@@ -9,6 +9,7 @@ require 'event_store/errors'
 module EventStore
   Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :serialized_event)
   SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event, :version)
+  SNAPSHOT_DELIMITER = "__NexEvStDelim__"
 
   def self.db
     @db
@@ -20,7 +21,6 @@ module EventStore
 
   def self.connect(*args)
     @db = Sequel.connect(*args)
-    @db.extension :pg_hstore
   end
 
   def self.redis_connect(config_hash)

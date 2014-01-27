@@ -1,4 +1,3 @@
-DB.extension :pg_hstore
 Sequel.migration do
   change do
     create_table(:device_events) do

@@ -16,16 +16,14 @@ module EventStore
     end
 
     def snapshot
-      events_hash          = EventStore.redis.hgetall(@snapshot_table)
-      inverted_events_hash = EventStore.redis.hgetall(@snapshot_version_table)
-      snap = []
-      events_hash.each_pair do |key, value|
-        name = key
-        version = value
-        serialized_event = inverted_events_hash[version.to_s]
-        snap << SerializedEvent.new(name, serialized_event, version.to_i)
+      events = EventStore.redis.zrange(@snapshot_table, 0, -1, with_scores: true) || []
+      events.map do |event_with_score|
+        raw_event = event_with_score.first.split(EventStore::SNAPSHOT_DELIMITER)
+        version   = event_with_score.last
+        fully_qualified_name = raw_event.first
+        serialized_event     = raw_event.last
+        SerializedEvent.new(fully_qualified_name, serialized_event, version.to_i)
       end
-      snap.sort {|a,b| a.version <=> b.version}
     end
 
     def events_from(version_number, max = nil)

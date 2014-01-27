@@ -35,6 +35,7 @@ end
 desc "migrate performance db"
 task :'db:migrate:perf' do
   begin
+    sh 'dropdb event_store_performance'
     sh 'createdb event_store_performance'
   rescue => e
     #we don't care if it exists alreay, so don't fail
