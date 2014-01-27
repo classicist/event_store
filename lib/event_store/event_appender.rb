@@ -35,7 +35,7 @@ module EventStore
         r = EventStore.redis
         old_version_number = r.hget(@aggregate.snapshot_version_table, event[:fully_qualified_name]) || -1
         r.multi do
-          if old_version_number.to_i < event[:version].to_i
+          if event[:version].to_i > old_version_number.to_i
             r.zremrangebyscore(@aggregate.snapshot_table, old_version_number.to_s, old_version_number.to_s)
             r.hset(@aggregate.snapshot_version_table, event[:fully_qualified_name], event[:version].to_s)
             r.zadd(@aggregate.snapshot_table, event[:version].to_s, event[:fully_qualified_name] + EventStore::SNAPSHOT_DELIMITER + event[:serialized_event])
@@ -73,7 +73,7 @@ module EventStore
     alias :set_expected_version :expected_version
 
     def validate! event_hash
-      [:aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event].each do |attribute_name|
+      [:aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event, :version].each do |attribute_name|
         if event_hash[attribute_name].to_s.strip.empty?
           raise AttributeMissingError, "value required for #{attribute_name}"
         end
