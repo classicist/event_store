@@ -33,15 +33,21 @@ module EventStore
     def store_snapshot(prepared_events)
       r = EventStore.redis
       old_version_numbers = r.hgetall(@aggregate.snapshot_version_table)
+      valid_snapshot_events = []
+      valid_snapshot_versions = []
       prepared_events.each do |event|
-        r.multi do
-          if event[:version].to_i > old_version_numbers[event[:fully_qualified_name]].to_i
-            r.hset(@aggregate.snapshot_version_table, event[:fully_qualified_name], event[:version].to_s)
-            r.hset(@aggregate.snapshot_table, event[:fully_qualified_name].to_s, event[:version].to_s + EventStore::SNAPSHOT_DELIMITER + event[:serialized_event])
-          end
+        if event[:version].to_i > old_version_numbers[event[:fully_qualified_name]].to_i
+          valid_snapshot_events   << event[:fully_qualified_name]
+          valid_snapshot_events   << (event[:version].to_s + EventStore::SNAPSHOT_DELIMITER + event[:serialized_event])
+          valid_snapshot_versions << event[:fully_qualified_name]
+          valid_snapshot_versions << event[:version].to_s
         end
       end
-    end
+      r.multi do
+        r.hmset(@aggregate.snapshot_version_table, valid_snapshot_versions)
+        r.hmset(@aggregate.snapshot_table, valid_snapshot_events)
+      end
+   end
 
     def has_concurrency_issue? event
       expected_version < event[:version]
