@@ -56,8 +56,8 @@ module EventStore
     end
 
     def destroy!
-      @aggregate.events.delete
-      @aggregate.delete_snapshot
+      @aggregate.delete_events!
+      @aggregate.delete_snapshot!
     end
 
     private
