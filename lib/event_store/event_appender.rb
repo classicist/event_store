@@ -43,9 +43,14 @@ module EventStore
           valid_snapshot_versions << event[:version].to_s
         end
       end
-      r.multi do
-        r.hmset(@aggregate.snapshot_version_table, valid_snapshot_versions)
-        r.hmset(@aggregate.snapshot_table, valid_snapshot_events)
+      unless valid_snapshot_versions.empty?
+        last_version            = valid_snapshot_versions.last
+        valid_snapshot_versions << 'current_version'
+        valid_snapshot_versions << last_version
+        r.multi do
+          r.hmset(@aggregate.snapshot_version_table, valid_snapshot_versions)
+          r.hmset(@aggregate.snapshot_table, valid_snapshot_events)
+        end
       end
    end
 

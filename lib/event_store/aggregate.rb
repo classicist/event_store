@@ -37,7 +37,7 @@ module EventStore
     end
 
     def version
-      last_event.version
+      EventStore.redis.hget(@snapshot_version_table, :current_version).to_i
     end
 
     def delete_snapshot!
