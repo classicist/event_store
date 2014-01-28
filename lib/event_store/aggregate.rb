@@ -19,11 +19,12 @@ module EventStore
       events_hash = EventStore.redis.hgetall(@snapshot_table)
       snap = []
       events_hash.each_pair do |key, value|
+        raw_event            = value.split(EventStore::SNAPSHOT_DELIMITER)
         fully_qualified_name = key
-        raw_event = value.split(EventStore::SNAPSHOT_DELIMITER)
-        version   = raw_event.first
-        serialized_event = raw_event.last
-        snap << SerializedEvent.new(fully_qualified_name, serialized_event, version.to_i)
+        version              = raw_event.first
+        serialized_event     = raw_event[1]
+        occurred_at          = raw_event.last
+        snap << SerializedEvent.new(fully_qualified_name, serialized_event, version.to_i, Time.parse(occurred_at))
       end
       snap.sort {|a,b| a.version <=> b.version}
     end

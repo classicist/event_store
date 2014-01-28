@@ -71,7 +71,7 @@ module EventStore
     end
 
     def translate_event(event_hash)
-      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version]
+      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version], event_hash[:occurred_at]
     end
   end
 end
