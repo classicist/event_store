@@ -9,11 +9,11 @@ describe EventStore::Client do
     client_2 = es_client.new('2', :device)
 
     events_by_aggregate_id  = {'1' => [], '2' => []}
-    ([1]*10 + [2]*10).shuffle.each do |aggregate_id|
-      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, DateTime.now, 'event_name', 234532.to_s(2))
+    ([1]*10 + [2]*10).shuffle.each_with_index do |aggregate_id, version|
+      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, DateTime.now, 'event_name', 234532.to_s(2), version)
     end
-    client_2.append events_by_aggregate_id['2'] #should be first
     client_1.append events_by_aggregate_id['1']
+    client_2.append events_by_aggregate_id['2']
   end
 
   describe '#raw_event_stream' do
@@ -126,10 +126,11 @@ describe EventStore::Client do
     before do
       @client = EventStore::Client.new('1', :device)
       @event = @client.peek
-      @duplicate_event = EventStore::Event.new('1', DateTime.now, 'duplicate', 12.to_s(2))
-      @old_event = EventStore::Event.new('1', DateTime.now - 200, "old", 1000.to_s(2))
-      @new_event = EventStore::Event.new('1', DateTime.now - 100, "new", 1001.to_s(2))
-      @really_new_event = EventStore::Event.new('1', DateTime.now, "really_new", 1002.to_s(2))
+      version = @client.version
+      @old_event = EventStore::Event.new('1', DateTime.now - 200, "old", 1000.to_s(2), version += 1)
+      @new_event = EventStore::Event.new('1', DateTime.now - 100, "new", 1001.to_s(2), version += 1)
+      @really_new_event = EventStore::Event.new('1', DateTime.now, "really_new", 1002.to_s(2), version += 1)
+      @duplicate_event = EventStore::Event.new('1', DateTime.now + 100, 'duplicate', 12.to_s(2), version += 1)
     end
 
     describe "when expected version number is greater than the last version" do
@@ -176,14 +177,15 @@ describe EventStore::Client do
       end
 
       describe 'with prior events of same type' do
-        it 'should raise a ConcurrencyError if the expected version is greater than the event version' do
+        it 'should raise a ConcurrencyError if the the event version is less than current version' do
           @client.append([@duplicate_event])
-          reset_expected_version_in(@client)
+          reset_current_version_for(@client)
           expect { @client.append([@duplicate_event]) }.to raise_error(EventStore::ConcurrencyError)
         end
 
         it 'should not raise an error when two events of the same type are appended' do
           @client.append([@duplicate_event])
+          @duplicate_event[:version] += 1
           @client.append([@duplicate_event]) #will fail automatically if it throws an error, no need for assertions (which now print warning for some reason)
         end
 
@@ -196,11 +198,11 @@ describe EventStore::Client do
           @client.snapshot.should == expected
         end
 
-        it "should increment the version number by the number of events added" do
+        it "should increment the version number by the number of unique events added" do
           events = [@old_event, @old_event, @old_event]
           initial_version = @client.version
           @client.append(events)
-          @client.version.should == (initial_version + events.length)
+          @client.version.should == (initial_version + events.uniq.length)
         end
 
         it "should set the snapshot version number to match that of the last event in the aggregate's event stream" do
@@ -249,12 +251,13 @@ describe EventStore::Client do
       before do
         @client = es_client.new('10', :device)
         @client.snapshot.length.should == 0
-        @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn| EventStore::Event.new('10', DateTime.now, fqn, 234532.to_s(2)) }
+        version = @client.version
+        @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn| EventStore::Event.new('10', DateTime.now, fqn, 234532.to_s(2), version += 1)}
       end
 require 'set'
       it "finds the most recent records for each type" do
-        fake_version = "0"
-        expected_snapshot = %w{ e1 e2 e3 e4 e5 }.map {|fqn| EventStore::SerializedEvent.new(fqn, 234532.to_s(2), fake_version) }
+        version = @client.version
+        expected_snapshot = %w{ e1 e2 e3 e4 e5 }.map {|fqn| EventStore::SerializedEvent.new(fqn, 234532.to_s(2), version +=1 ) }
         @client.event_stream.length.should == 10
         actual_snapshot = @client.snapshot
         actual_snapshot.length.should == 5
@@ -275,12 +278,9 @@ require 'set'
     end
 
 
-    def reset_expected_version_in(client)
-      client.define_singleton_method(:event_appender) do
-        @event_appender ||= EventStore::EventAppender.new(@aggregate)
-        @event_appender.define_singleton_method(:expected_version) {@expected_version = 0}
-        @event_appender
-      end
+    def reset_current_version_for(client)
+      aggregate = client.instance_variable_get("@aggregate")
+      EventStore.redis.hset(aggregate.snapshot_version_table, :current_version, 1000)
     end
   end
 end
