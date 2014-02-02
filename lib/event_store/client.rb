@@ -13,6 +13,10 @@ module EventStore
       @aggregate.type
     end
 
+    def event_table
+      @aggregate.event_table
+    end
+
     def append event_data
       event_appender.append(event_data)
       yield(event_data) if block_given?
@@ -71,7 +75,7 @@ module EventStore
     end
 
     def translate_event(event_hash)
-      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version], event_hash[:occurred_at].round
+      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version], event_hash[:occurred_at]
     end
   end
 end

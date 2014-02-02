@@ -1,4 +1,5 @@
 require 'sequel'
+require 'sequel-vertica'
 require 'redis'
 require 'event_store/version'
 require 'event_store/event_appender'

@@ -20,17 +20,23 @@ require 'sequel'
 require 'sequel/extensions/migration'
 require 'event_store'
 
-def test_db
-  Sequel.connect('postgres://localhost:5432/event_store_test')
-end
-Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'))
+#To find the ip address of vertica on your local box (running in a vm)
+#1. find the MAC address of the vm
+#2. do arp -a
+#3. find the ip address after the MAC address in the list
+# To do this on VMFusion: http://superuser.com/questions/433988/how-to-find-the-ip-address-of-a-vm-running-on-vmware-or-other-methods-of-using
 
-EventStore.connect :adapter => :postgres, :database => 'event_store_test', host: 'localhost'
+# def test_db
+#   Sequel.connect('vertica://dbadmin:password@192.168.180.65:5433/nexia_history')
+# end
+# Sequel::Migrator.apply(test_db, File.expand_path('db/migrations'))
+
+EventStore.connect :adapter => :vertica, :database => 'nexia_history', host: '192.168.180.65', username: 'dbadmin', password: 'password'
 EventStore.redis_connect host: 'localhost'
 
 RSpec.configure do |config|
   config.after(:each) do
-    EventStore.db.from(:device_events).delete
+    EventStore.db.from("events.device_events".lit).delete
     EventStore.redis.flushall
   end
 end

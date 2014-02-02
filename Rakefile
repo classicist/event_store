@@ -23,13 +23,7 @@ end
 
 desc "migrate test db (drops test db first)"
 task :'db:test:prepare' do
-  begin
-    sh 'dropdb event_store_test'
-    sh 'createdb event_store_test'
-  rescue => e
-    #we don't care if it exists alreay, so don't fail
-  end
-  sh 'bundle exec sequel -m db/migrations postgres://localhost:5432/event_store_test'
+  sh 'bundle exec sequel -m db/migrations vertica://dbadmin:password@192.168.180.65:5433/nexia_history'
 end
 
 desc "migrate performance db"

@@ -1,12 +1,13 @@
 module EventStore
   class Aggregate
 
-    attr_reader :id, :type, :snapshot_table, :snapshot_version_table
+    attr_reader :id, :type, :snapshot_table, :snapshot_version_table, :event_table
 
     def initialize id, type
       @id = id
       @type = type
-      @event_table = "#{@type}_events"
+      @schema = 'events'
+      @event_table = "#{@schema}.#{@type}_events".lit
       @snapshot_table = "#{@type}_snapshots_for_#{@id}"
       @snapshot_version_table = "#{@type}_snapshot_versions_for_#{@id}"
     end
@@ -23,7 +24,7 @@ module EventStore
         fully_qualified_name = key
         version              = raw_event.first.to_i
         serialized_event     = raw_event[1]
-        occurred_at          = Time.parse(raw_event.last).round
+        occurred_at          = DateTime.parse(raw_event.last)
         snap << SerializedEvent.new(fully_qualified_name, serialized_event, version, occurred_at)
       end
       snap.sort {|a,b| a.version <=> b.version}
