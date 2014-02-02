@@ -1,0 +1,23 @@
+id | type | version | data | timestamp
+
+seg by therm_id
+let dbd figure out compression
+partition by timestamp (month based)?
+  - works on min max; dates are best
+  - could try custom hash for partitioning
+order by id, type, version
+
+UDL - in java or C++
+
+27tb is pushing 3 nodes
+
+WOS
+start with default
+tuple_mover_events table for stats
+
+all nodes should be identical
+
+define fault groups in different region
+bad idea to divide cluster between regions -- perf
+
+graphviz
