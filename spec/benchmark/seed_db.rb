@@ -10,7 +10,8 @@ require 'event_store'
 #     database: 'event_store_performance'
 #   ]
 # EventStore.connect ( db_config )
-EventStore.connect :adapter => :postgres, :database => 'event_store_performance', host: 'localhost'
+# EventStore.connect :adapter => :postgres, :database => 'event_store_performance', host: 'localhost'
+EventStore.connect :adapter => :vertica, :database => 'nexia_history', host: '192.168.180.65', username: 'dbadmin', password: 'password'
 EventStore.redis_connect host: 'localhost'
 
 
@@ -28,8 +29,8 @@ puts "Creating #{DEVICES} Aggregates with #{EVENTS_PER_DEVICE} events each. Ther
   client = EventStore::Client.new(device_id, :device)
   records = []
 
-  EVENTS_PER_DEVICE.times do
-    records << EventStore::Event.new(device_id.to_s, DateTime.now, event_types.sample, rand(9999999999999).to_s(2))
+  EVENTS_PER_DEVICE.times do |version|
+    records << EventStore::Event.new(device_id.to_s, DateTime.now, event_types.sample, rand(9999999999999).to_s(2), version)
   end
 
   puts "Appending #{EVENTS_PER_DEVICE} events for #{device_id} of #{DEVICES} Aggregates."
