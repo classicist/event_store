@@ -34,7 +34,7 @@ module EventStore
       prepared_events.each do |event|
         if event[:version].to_i > current_version_numbers[event[:fully_qualified_name]].to_i
           valid_snapshot_events   << event[:fully_qualified_name]
-          valid_snapshot_events   << (event[:version].to_s + EventStore::SNAPSHOT_DELIMITER + event[:serialized_event] + EventStore::SNAPSHOT_DELIMITER + event[:occurred_at].to_s)
+          valid_snapshot_events   << (event[:version].to_s + EventStore::SNAPSHOT_DELIMITER + event[:serialized_event] + EventStore::SNAPSHOT_DELIMITER + event[:occurred_at].round.to_s)
           valid_snapshot_versions << event[:fully_qualified_name]
           valid_snapshot_versions << event[:version]
         end
@@ -57,7 +57,7 @@ module EventStore
     def prepare_event raw_event
       { :version              => raw_event.version,
         :aggregate_id         => raw_event.aggregate_id,
-        :occurred_at          => raw_event.occurred_at,
+        :occurred_at          => raw_event.occurred_at.round,
         :serialized_event     => raw_event.serialized_event,
         :fully_qualified_name => raw_event.fully_qualified_name }
     end

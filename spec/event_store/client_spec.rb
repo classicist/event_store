@@ -9,7 +9,7 @@ describe EventStore::Client do
     client_2 = es_client.new('2', :device)
 
     events_by_aggregate_id  = {'1' => [], '2' => []}
-    @event_time = Time.now.utc
+    @event_time = Time.now.utc.round
     ([1]*10 + [2]*10).shuffle.each_with_index do |aggregate_id, version|
       events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', 234532.to_s(2), version)
     end
@@ -128,10 +128,10 @@ describe EventStore::Client do
       @client = EventStore::Client.new('1', :device)
       @event = @client.peek
       version = @client.version
-      @old_event = EventStore::Event.new('1', Time.now.utc - 200, "old", 1000.to_s(2), version += 1)
-      @new_event = EventStore::Event.new('1', Time.now.utc - 100, "new", 1001.to_s(2), version += 1)
-      @really_new_event = EventStore::Event.new('1', Time.now.utc, "really_new", 1002.to_s(2), version += 1)
-      @duplicate_event  = EventStore::Event.new('1', Time.now.utc + 100, 'duplicate', 12.to_s(2), version += 1)
+      @old_event = EventStore::Event.new('1', (Time.now - 200).round, "old", 1000.to_s(2), version += 1)
+      @new_event = EventStore::Event.new('1', (Time.now - 100).round, "new", 1001.to_s(2), version += 1)
+      @really_new_event = EventStore::Event.new('1', (Time.now).round, "really_new", 1002.to_s(2), version += 1)
+     p @duplicate_event  = EventStore::Event.new('1', (Time.now + 100).round, 'duplicate', 12.to_s(2), version += 1)
     end
 
     describe "when expected version number is greater than the last version" do
