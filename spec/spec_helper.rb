@@ -20,7 +20,7 @@ require 'sequel'
 require 'sequel/extensions/migration'
 require 'event_store'
 
-EventStore.create_db(:vertica)
+EventStore.create_db(:sqlite)
 EventStore.redis_connect host: 'localhost'
 
 RSpec.configure do |config|
