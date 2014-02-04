@@ -11,7 +11,7 @@ describe EventStore::Client do
     events_by_aggregate_id  = {'1' => [], '2' => []}
     @event_time = DateTime.new(2001,2,3,4,5,6)
     ([1]*10 + [2]*10).shuffle.each_with_index do |aggregate_id, version|
-      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', 234532.to_s(2), version)
+      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', "#{234532.to_s(2)}_foo}", version)
     end
     client_1.append events_by_aggregate_id['1']
     client_2.append events_by_aggregate_id['2']
@@ -120,7 +120,7 @@ describe EventStore::Client do
 
     it 'should return the last event in the event stream' do
       last_event = EventStore.db.from(client.event_table).where(aggregate_id: '1').order(:version).last
-      subject.should == EventStore::SerializedEvent.new(last_event[:fully_qualified_name], last_event[:serialized_event], last_event[:version], @event_time)
+      subject.should == EventStore::SerializedEvent.new(last_event[:fully_qualified_name], last_event[:serialized_event].to_s, last_event[:version], @event_time)
     end
   end
 
@@ -129,10 +129,10 @@ describe EventStore::Client do
       @client = EventStore::Client.new('1', :device)
       @event = @client.peek
       version = @client.version
-      @old_event = EventStore::Event.new('1', (@event_time - 200), "old", 1000.to_s(2), version += 1)
-      @new_event = EventStore::Event.new('1', (@event_time - 100), "new", 1001.to_s(2), version += 1)
-      @really_new_event = EventStore::Event.new('1', (@event_time), "really_new", 1002.to_s(2), version += 1)
-      @duplicate_event  = EventStore::Event.new('1', (@event_time + 100), 'duplicate', 12.to_s(2), version += 1)
+      @old_event = EventStore::Event.new('1', (@event_time - 200), "old", "#{1000.to_s(2)}_foo", version += 1)
+      @new_event = EventStore::Event.new('1', (@event_time - 100), "new", "#{1001.to_s(2)}_foo", version += 1)
+      @really_new_event = EventStore::Event.new('1', (@event_time), "really_new", "#{1002.to_s(2)}_foo", version += 1)
+      @duplicate_event  = EventStore::Event.new('1', (@event_time + 100), 'duplicate', "#{12.to_s(2)}_foo", version += 1)
     end
 
     describe "when expected version number is greater than the last version" do

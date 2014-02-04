@@ -23,3 +23,4 @@ tmp
 .yardoc
 _yardoc
 doc/
+db/vertica_host_address.txt

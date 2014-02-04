@@ -1,13 +1,11 @@
+require 'event_store'
 Sequel.migration do
   up do
-    run ' CREATE SCHEMA events;
-          CREATE TABLE events.device_events (
-            id auto_increment NOT NULL,
-            version BIGINT NOT NULL,
-            aggregate_id varchar(36) NOT NULL,
-            fully_qualified_name varchar(255) NOT NULL,
-            occurred_at DATETIME NOT NULL,
-            serialized_event VARBINARY(255) NOT NULL);
+    schema = 'events'
+    run %Q< CREATE SCHEMA #{schema};
+
+          #{EventStore.event_table_creation_ddl.gsub(';', '')}
+          PARTITION BY EXTRACT(year FROM occurred_at)*100 + EXTRACT(month FROM occurred_at);
 
           CREATE PROJECTION events.device_events_DBD_1_seg_EventStore9_b0 /*+basename(device_events_DBD_1_seg_EventStore9),createtype(D)*/
           (
@@ -29,11 +27,10 @@ Sequel.migration do
            ORDER BY aggregate_id,
                     fully_qualified_name,
                     version
-          PARTITION BY MONTH(occurred_at)
-          SEGMENTED BY HASH (aggregate_id) ALL NODES;'
+          SEGMENTED BY HASH (aggregate_id) ALL NODES;>
   end
 
   down do
-    run 'DROP SCHEMA events CASCADE;'
+    run 'DROP SCHEMA #{schema} CASCADE;'
   end
 end

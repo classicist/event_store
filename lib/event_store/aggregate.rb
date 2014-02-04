@@ -6,8 +6,8 @@ module EventStore
     def initialize id, type
       @id = id
       @type = type
-      @schema = 'events'
-      @event_table = "#{@schema}.#{@type}_events".lit
+      @schema = EventStore.schema
+      @event_table = "#{@schema + '.' if @schema}#{@type}_events".lit
       @snapshot_table = "#{@type}_snapshots_for_#{@id}"
       @snapshot_version_table = "#{@type}_snapshot_versions_for_#{@id}"
     end
