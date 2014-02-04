@@ -30,6 +30,11 @@ module EventStore
     @redis = Redis.new(config_hash)
   end
 
+  def self.clear!
+    EventStore.db.from("#{EventStore.schema + '.' if EventStore.schema}device_events".lit).delete
+    EventStore.redis.flushall
+  end
+
   def self.schema
     @@schema
   end

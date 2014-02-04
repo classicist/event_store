@@ -25,7 +25,6 @@ EventStore.redis_connect host: 'localhost'
 
 RSpec.configure do |config|
   config.after(:each) do
-    EventStore.db.from("#{EventStore.schema + '.' if EventStore.schema}device_events".lit).delete
-    EventStore.redis.flushall
+    EventStore.clear!
   end
 end
