@@ -19,7 +19,7 @@ module EventStore
         # All concurrency issues need to be checked before persisting any of the events
         # Otherwise, the newly appended events may raise erroneous concurrency errors
         result = @aggregate.events.multi_insert(prepared_events)
-        store_snapshot(prepared_events) if result
+        store_snapshot(prepared_events) unless result.nil?
         result
       end
     end
@@ -29,6 +29,7 @@ module EventStore
     def store_snapshot(prepared_events)
       r = EventStore.redis
       current_version_numbers = r.hgetall(@aggregate.snapshot_version_table)
+      current_version_numbers.default = -1
       valid_snapshot_events = []
       valid_snapshot_versions = []
       prepared_events.each do |event|
