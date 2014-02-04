@@ -51,11 +51,6 @@ module EventStore
       #3. do /sbin/ifconfig (ifconfig is not in $PATH)
       #4. the inet address for en0 is what you want
       EventStore.connect :adapter => :vertica, :database => 'nexia_history', host: vertica_host, username: 'dbadmin', password: 'password'
-      # begin
-      #   # @db.run("DROP SCHEMA #{@@schema} CASCADE; drop table public.schema_info")
-      # rescue
-      #   #don't care if this fails bc it fails if there is no table, which is what we want
-      # end
       `bundle exec sequel -m db/migrations vertica://dbadmin:password@#{vertica_host}:5433/nexia_history`
     end
   end

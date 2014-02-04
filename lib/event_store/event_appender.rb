@@ -42,7 +42,7 @@ module EventStore
       unless valid_snapshot_versions.empty?
         last_version            = valid_snapshot_versions.last
         valid_snapshot_versions << :current_version
-        valid_snapshot_versions << last_version
+        valid_snapshot_versions << last_version.to_i
         r.multi do
           r.hmset(@aggregate.snapshot_version_table, valid_snapshot_versions)
           r.hmset(@aggregate.snapshot_table, valid_snapshot_events)
@@ -55,7 +55,7 @@ module EventStore
     end
 
     def prepare_event raw_event
-      { :version              => raw_event.version,
+      { :version              => raw_event.version.to_i,
         :aggregate_id         => raw_event.aggregate_id,
         :occurred_at          => raw_event.occurred_at,
         :serialized_event     => raw_event.serialized_event,
