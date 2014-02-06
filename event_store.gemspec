@@ -28,5 +28,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "sequel", "~> 3.42"
   spec.add_dependency 'sequel-vertica'
-  spec.add_dependency 'redis'
+  spec.add_dependency 'redis', "~> 3.0.7"
 end
