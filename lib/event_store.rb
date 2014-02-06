@@ -31,7 +31,7 @@ module EventStore
   end
 
   def self.clear!
-    EventStore.db.from("#{EventStore.schema + '.' if EventStore.schema}device_events".lit).delete
+    EventStore.db.from(Sequel.lit "#{EventStore.schema + '.' if EventStore.schema}device_events").delete
     EventStore.redis.flushall
   end
 
@@ -48,7 +48,7 @@ module EventStore
       rescue
         #don't care if this fails bc it fails if there is no table, which is what we want
       end
-        @db.run event_table_creation_ddl
+        @db.run event_table_creation_ddl(:sqlite)
     elsif type == :vertica
       #To find the ip address of vertica on your local box (running in a vm)
       #1. open Settings -> Network and select Wi-Fi
@@ -64,8 +64,8 @@ module EventStore
     File.read File.expand_path("../../db/vertica_host_address.txt", __FILE__)
   end
 
-  def self.event_table_creation_ddl
-    %Q<CREATE TABLE #{schema + '.' if schema} device_events (
+  def self.event_table_creation_ddl(type=:sqlite)
+    %Q<CREATE TABLE #{'IF NOT EXISTS' if type == :sqlite} #{schema + '.' if schema} device_events (
       id AUTO_INCREMENT PRIMARY KEY,
       version BIGINT NOT NULL,
       aggregate_id varchar(36) NOT NULL,

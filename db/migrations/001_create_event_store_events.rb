@@ -4,7 +4,7 @@ Sequel.migration do
     schema = 'events'
     run %Q< CREATE SCHEMA #{schema};
 
-          #{EventStore.event_table_creation_ddl.gsub(';', '')}
+          #{EventStore.event_table_creation_ddl(:vertica).gsub(';', '')}
           PARTITION BY EXTRACT(year FROM occurred_at)*100 + EXTRACT(month FROM occurred_at);
 
           CREATE PROJECTION events.device_events_super_projecion /*+createtype(D)*/
