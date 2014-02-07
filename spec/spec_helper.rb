@@ -21,8 +21,7 @@ require 'sequel/extensions/migration'
 require 'event_store'
 
 
-EventStore.create_db(:sqlite)
-EventStore.redis_connect host: 'localhost'
+EventStore.sqlite
 
 RSpec.configure do |config|
   config.after(:each) do

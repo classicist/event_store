@@ -39,9 +39,14 @@ module EventStore
     @@schema
   end
 
+  def self.sqlite
+    redis_connect host: 'localhost'
+    create_db(:sqlite)
+  end
+
   def self.create_db(type, db_config = nil)
     if type == :sqlite
-      EventStore.connect :adapter => :sqlite, :database => 'db/nexia_history', host: 'localhost'
+      EventStore.connect :adapter => :sqlite
       begin
         @db.run 'DROP TABLE device_events;'
       rescue
@@ -49,16 +54,6 @@ module EventStore
       end
         @@schema = nil
         @db.run event_table_creation_ddl(type)
-    elsif type == :mysql
-      EventStore.connect db_config
-      begin
-        @db.run 'DROP TABLE device_events;'
-      rescue
-        #don't care if this fails bc it fails if there is no table, which is what we want
-      end
-        @@schema = nil
-        @db.run event_table_creation_ddl(type)
-        # @db.run "GRANT ALL ON schlage_test.* TO schlage@localhost;"
     elsif type == :vertica
       #To find the ip address of vertica on your local box (running in a vm)
       #1. open Settings -> Network and select Wi-Fi
@@ -78,14 +73,6 @@ module EventStore
     if type == :sqlite
     %Q<CREATE TABLE IF NOT EXISTS device_events (
       id AUTO_INCREMENT PRIMARY KEY,
-      version BIGINT NOT NULL,
-      aggregate_id varchar(36) NOT NULL,
-      fully_qualified_name varchar(255) NOT NULL,
-      occurred_at DATETIME NOT NULL,
-      serialized_event VARBINARY(255) NOT NULL);>
-    elsif type == :mysql
-      %Q<CREATE TABLE IF NOT EXISTS device_events (
-      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
       version BIGINT NOT NULL,
       aggregate_id varchar(36) NOT NULL,
       fully_qualified_name varchar(255) NOT NULL,
