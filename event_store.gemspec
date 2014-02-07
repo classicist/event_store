@@ -25,8 +25,6 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "pry-debugger"
   spec.add_development_dependency "mock_redis"
   spec.add_development_dependency 'sqlite3'
-  spec.add_development_dependency 'mysql2', '0.3.14'
-
 
   spec.add_dependency "sequel", "~> 3.42"
   spec.add_dependency 'sequel-vertica', '~> 0.1.0'
