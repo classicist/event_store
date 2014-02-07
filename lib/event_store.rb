@@ -39,16 +39,26 @@ module EventStore
     @@schema
   end
 
-  def self.create_db(type, schema = nil)
+  def self.create_db(type, db_config = nil)
     if type == :sqlite
       EventStore.connect :adapter => :sqlite, :database => 'db/nexia_history', host: 'localhost'
       begin
-        @@schema = nil #sqlite does not use schemas
         @db.run 'DROP TABLE device_events;'
       rescue
         #don't care if this fails bc it fails if there is no table, which is what we want
       end
-        @db.run event_table_creation_ddl(:sqlite)
+        @@schema = nil
+        @db.run event_table_creation_ddl(type)
+    elsif type == :mysql
+      EventStore.connect db_config
+      begin
+        @db.run 'DROP TABLE device_events;'
+      rescue
+        #don't care if this fails bc it fails if there is no table, which is what we want
+      end
+        @@schema = nil
+        @db.run event_table_creation_ddl(type)
+        # @db.run "GRANT ALL ON schlage_test.* TO schlage@localhost;"
     elsif type == :vertica
       #To find the ip address of vertica on your local box (running in a vm)
       #1. open Settings -> Network and select Wi-Fi
@@ -64,13 +74,31 @@ module EventStore
     File.read File.expand_path("../../db/vertica_host_address.txt", __FILE__)
   end
 
-  def self.event_table_creation_ddl(type=:sqlite)
-    %Q<CREATE TABLE #{'IF NOT EXISTS' if type == :sqlite} #{schema + '.' if schema} device_events (
+  def self.event_table_creation_ddl(type)
+    if type == :sqlite
+    %Q<CREATE TABLE IF NOT EXISTS device_events (
       id AUTO_INCREMENT PRIMARY KEY,
       version BIGINT NOT NULL,
       aggregate_id varchar(36) NOT NULL,
       fully_qualified_name varchar(255) NOT NULL,
       occurred_at DATETIME NOT NULL,
       serialized_event VARBINARY(255) NOT NULL);>
+    elsif type == :mysql
+      %Q<CREATE TABLE IF NOT EXISTS device_events (
+      id INT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+      version BIGINT NOT NULL,
+      aggregate_id varchar(36) NOT NULL,
+      fully_qualified_name varchar(255) NOT NULL,
+      occurred_at DATETIME NOT NULL,
+      serialized_event VARBINARY(255) NOT NULL);>
+    elsif type == :vertica
+      %Q<CREATE TABLE #{schema} device_events (
+      id AUTO_INCREMENT PRIMARY KEY,
+      version BIGINT NOT NULL,
+      aggregate_id varchar(36) NOT NULL,
+      fully_qualified_name varchar(255) NOT NULL,
+      occurred_at DATETIME NOT NULL,
+      serialized_event VARBINARY(255) NOT NULL);>
+    end
   end
 end
