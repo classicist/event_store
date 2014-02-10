@@ -7,7 +7,9 @@ Gem::Specification.new do |spec|
   spec.name          = "event_store"
   spec.version       = EventStore::VERSION
   spec.authors       = ["Paul Saieg, John Colvin", "Stuart Nelson"]
-  spec.summary       = %q{An abstraction around A+ES}
+  spec.description   = ["A Ruby implementation of an EventSource (A+ES) tuned for Vertica"]
+  spec.email         = ["paul.saieg@irco.com"]
+  spec.summary       = %q{Ruby implementation of an EventSource (A+ES) for the Nexia Ecosystem}
   spec.homepage      = ""
   spec.license       = "MIT"
 
