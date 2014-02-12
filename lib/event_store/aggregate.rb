@@ -3,7 +3,7 @@ module EventStore
 
     attr_reader :id, :type, :snapshot_table, :snapshot_version_table, :event_table
 
-    def initialize id, type
+    def initialize(id, type = EventStore.table_name)
       @id = id
       @type = type
       @schema = EventStore.schema
@@ -28,6 +28,11 @@ module EventStore
         snap << SerializedEvent.new(fully_qualified_name, serialized_event, version, occurred_at)
       end
       snap.sort {|a,b| a.version <=> b.version}
+    end
+
+    def rebuild_snapshot!
+      corrected_events = events.all.map{|e| e[:occurred_at] = TimeHacker.translate_occurred_at_from_local_to_gmt(e[:occurred_at]); e}
+      EventAppender.new(self).store_snapshot(corrected_events)
     end
 
     def events_from(version_number, max = nil)

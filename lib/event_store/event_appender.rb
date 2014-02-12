@@ -23,8 +23,6 @@ module EventStore
       end
     end
 
-    private
-
     def store_snapshot(prepared_events)
       r = EventStore.redis
       current_version_numbers = r.hgetall(@aggregate.snapshot_version_table)
@@ -48,8 +46,9 @@ module EventStore
           r.hmset(@aggregate.snapshot_table, valid_snapshot_events)
         end
       end
-   end
+    end
 
+  private
     def has_concurrency_issue? event
       event[:version] <= current_version
     end

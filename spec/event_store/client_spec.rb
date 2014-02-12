@@ -1,6 +1,4 @@
-require_relative '../spec_helper'
-require 'ostruct'
-require 'set'
+require 'spec_helper'
 
 describe EventStore::Client do
   let(:es_client) { EventStore::Client }
