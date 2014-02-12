@@ -23,9 +23,8 @@ module EventStore
     it "should rebuild a snapshot after it is deleted" do
       appender.append(events)
       snapshot = new_aggregate.snapshot
-      snapshot.length.should == 1
+      version  = new_aggregate.version
       new_aggregate.delete_snapshot!
-      new_aggregate.snapshot.length.should == 0
       new_aggregate.rebuild_snapshot!
       new_aggregate.snapshot.should == snapshot
     end
@@ -34,6 +33,13 @@ module EventStore
       Aggregate.any_instance.should_receive(:delete_snapshot!)
       Aggregate.any_instance.should_receive(:rebuild_snapshot!)
       client.rebuild_snapshot!
+    end
+
+    it "should rebuild the snapshot if events exist, but the snapshot is empty" do
+      appender.append(events)
+      snapshot = new_aggregate.snapshot
+      new_aggregate.delete_snapshot!
+      new_aggregate.snapshot.should == snapshot
     end
   end
 end

@@ -17,7 +17,7 @@ module EventStore
     end
 
     def snapshot
-      events_hash = EventStore.redis.hgetall(@snapshot_table)
+      events_hash = auto_rebuild_snapshot(read_raw_snapshot)
       snap = []
       events_hash.each_pair do |key, value|
         raw_event            = value.split(EventStore::SNAPSHOT_DELIMITER)
@@ -31,6 +31,7 @@ module EventStore
     end
 
     def rebuild_snapshot!
+      delete_snapshot!
       corrected_events = events.all.map{|e| e[:occurred_at] = TimeHacker.translate_occurred_at_from_local_to_gmt(e[:occurred_at]); e}
       EventAppender.new(self).store_snapshot(corrected_events)
     end
@@ -53,6 +54,19 @@ module EventStore
 
     def delete_events!
       events.delete
+    end
+
+  private
+    def auto_rebuild_snapshot(events_hash)
+      return events_hash unless events_hash.empty?
+      event = events.select(:version).limit(1).all
+      return events_hash if event.nil?
+      rebuild_snapshot!
+      events_hash = read_raw_snapshot
+    end
+
+    def read_raw_snapshot
+      EventStore.redis.hgetall(@snapshot_table)
     end
   end
 end

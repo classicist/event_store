@@ -1,6 +1,7 @@
 require 'simplecov'
 require 'simplecov-rcov'
 require 'pry'
+require 'rspec'
 
 class SimpleCov::Formatter::MergedFormatter
   def format(result)
@@ -16,9 +17,6 @@ SimpleCov.start do
   SimpleCov.minimum_coverage 95
 end
 
-require 'rspec'
-require 'sequel'
-require 'sequel/extensions/migration'
 require 'event_store'
 
 EventStore.postgres
