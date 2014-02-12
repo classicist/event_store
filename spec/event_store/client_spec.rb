@@ -10,7 +10,7 @@ describe EventStore::Client do
     client_2 = es_client.new('2', :device)
 
     events_by_aggregate_id  = {'1' => [], '2' => []}
-    @event_time = DateTime.new(2001,2,3,4,5,6)
+    @event_time = Time.new(2001,2,3).utc
     ([1]*10 + [2]*10).shuffle.each_with_index do |aggregate_id, version|
       events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', "#{234532.to_s(2)}_foo}", version)
     end
@@ -130,10 +130,10 @@ describe EventStore::Client do
       @client = EventStore::Client.new('1', :device)
       @event = @client.peek
       version = @client.version
-      @old_event = EventStore::Event.new('1', (@event_time - 2000), "old", "#{1000.to_s(2)}_foo", version += 1)
-      @new_event = EventStore::Event.new('1', (@event_time - 1000), "new", "#{1001.to_s(2)}_foo", version += 1)
-      @really_new_event = EventStore::Event.new('1', (@event_time + 100), "really_new", "#{1002.to_s(2)}_foo", version += 1)
-      @duplicate_event  = EventStore::Event.new('1', (@event_time), 'duplicate', "#{12.to_s(2)}_foo", version += 1)
+      @old_event = EventStore::Event.new('1', (@event_time - 2000).utc, "old", "#{1000.to_s(2)}_foo", version += 1)
+      @new_event = EventStore::Event.new('1', (@event_time - 1000).utc, "new", "#{1001.to_s(2)}_foo", version += 1)
+      @really_new_event = EventStore::Event.new('1', (@event_time + 100).utc, "really_new", "#{1002.to_s(2)}_foo", version += 1)
+      @duplicate_event  = EventStore::Event.new('1', (@event_time).utc, 'duplicate', "#{12.to_s(2)}_foo", version += 1)
     end
 
     describe "when expected version number is greater than the last version" do
@@ -255,7 +255,7 @@ describe EventStore::Client do
         @client = es_client.new('10', :device)
         @client.snapshot.length.should == 0
         version = @client.version
-        @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn|EventStore::Event.new('10', DateTime.now, fqn, 234532.to_s(2), version += 1)}
+        @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn|EventStore::Event.new('10', Time.now.utc, fqn, 234532.to_s(2), version += 1)}
       end
 
       it "finds the most recent records for each type" do

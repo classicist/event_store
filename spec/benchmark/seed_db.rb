@@ -30,7 +30,7 @@ puts "Creating #{DEVICES} Aggregates with #{EVENTS_PER_DEVICE} events each. Ther
   records = []
 
   EVENTS_PER_DEVICE.times do |version|
-    records << EventStore::Event.new(device_id.to_s, DateTime.now, event_types.sample, rand(9999999999999).to_s(2), version)
+    records << EventStore::Event.new(device_id.to_s, Time.now, event_types.sample, rand(9999999999999).to_s(2), version)
   end
 
   puts "Appending #{EVENTS_PER_DEVICE} events for #{device_id} of #{DEVICES} Aggregates."

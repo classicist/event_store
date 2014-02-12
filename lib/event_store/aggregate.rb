@@ -24,7 +24,7 @@ module EventStore
         fully_qualified_name = key
         version              = raw_event.first.to_i
         serialized_event     = raw_event[1]
-        occurred_at          = DateTime.parse(raw_event.last)
+        occurred_at          = Time.parse(raw_event.last)
         snap << SerializedEvent.new(fully_qualified_name, serialized_event, version, occurred_at)
       end
       snap.sort {|a,b| a.version <=> b.version}

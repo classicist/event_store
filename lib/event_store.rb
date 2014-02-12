@@ -44,7 +44,13 @@ module EventStore
     create_db(:sqlite)
   end
 
-  def self.create_db(type, db_config = nil)
+  def self.postgres(test = true)
+    redis_connect host: 'localhost'
+    create_db(:postgres, test)
+  end
+
+  def self.create_db(type, test = true, db_config = nil)
+    test_db = '_test' if test
     if type == :sqlite
       EventStore.connect :adapter => :sqlite
       begin
@@ -54,14 +60,20 @@ module EventStore
       end
         @@schema = nil
         @db.run event_table_creation_ddl(type)
+    elsif type == :postgres
+      EventStore.connect :adapter => :postgres, :database => "nexia_history#{test_db}",
+        host: 'localhost', username: 'nexia', password: 'Password1', encoding: 'UTF-8',
+        pool: 100, reconnect: true, port: 5432
+
+      `bundle exec sequel -m db/pg_migrations postgres://nexia:Password1@localhost:5432/nexia_history#{test_db}`
     elsif type == :vertica
       #To find the ip address of vertica on your local box (running in a vm)
       #1. open Settings -> Network and select Wi-Fi
       #2. open a terminal in the VM
       #3. do /sbin/ifconfig (ifconfig is not in $PATH)
       #4. the inet address for en0 is what you want
-      EventStore.connect :adapter => :vertica, :database => 'nexia_history', host: vertica_host, username: 'dbadmin', password: 'password'
-      `bundle exec sequel -m db/migrations vertica://dbadmin:password@#{vertica_host}:5433/nexia_history`
+      EventStore.connect :adapter => :vertica, :database => "nexia_history#{test_db}", host: vertica_host, username: 'dbadmin', password: 'password'
+      `bundle exec sequel -m db/migrations vertica://dbadmin:password@#{vertica_host}:5433/nexia_history#{test_db}`
     end
   end
 
@@ -86,6 +98,21 @@ module EventStore
       fully_qualified_name varchar(255) NOT NULL,
       occurred_at DATETIME NOT NULL,
       serialized_event VARBINARY(255) NOT NULL);>
+    end
+  end
+end
+
+#http://stackoverflow.com/questions/1114725/using-utc-with-sequel
+module Sequel
+    def self.string_to_datetime(string)
+    begin
+      if datetime_class == DateTime
+        DateTime.parse(string, convert_two_digit_years)
+      else
+        Time.parse(string + " +00:00").utc
+      end
+    rescue => e
+      raise convert_exception_class(e, InvalidValue)
     end
   end
 end
