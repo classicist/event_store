@@ -10,7 +10,7 @@ describe EventStore::Client do
     client_2 = es_client.new('2', :device)
 
     events_by_aggregate_id  = {'1' => [], '2' => []}
-    @event_time = Time.new(2001,2,3).utc
+    @event_time = Time.parse("2001-01-01 00:00:00 UTC")
     ([1]*10 + [2]*10).shuffle.each_with_index do |aggregate_id, version|
       events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', "#{234532.to_s(2)}_foo}", version)
     end

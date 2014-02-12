@@ -75,7 +75,19 @@ module EventStore
     end
 
     def translate_event(event_hash)
-      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version], Time.parse(event_hash[:occurred_at].to_s).utc
+      occurred_at =  translate_occurred_at_from_local_to_gmt(event_hash[:occurred_at])
+      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version], occurred_at
+    end
+
+    #Hack around various DB adapters that hydrate dates from the db into the local ruby timezone
+    def translate_occurred_at_from_local_to_gmt(occurred_at)
+      if occurred_at.class == Time
+        #expecting "2001-02-03 01:26:40 -0700"
+        Time.parse(occurred_at.to_s.gsub(/\s[+-]\d+$/, ' UTC'))
+      elsif occurred_at.class == DateTime
+        #expecting "2001-02-03T01:26:40+00:00"
+        Time.parse(occurred_at.iso8601.gsub('T', ' ').gsub(/[+-]\d{2}\:\d{2}/, ' UTC'))
+      end
     end
   end
 end

@@ -4,7 +4,14 @@ Sequel.migration do
     schema = 'events'
     run %Q< CREATE SCHEMA #{schema};
 
-          #{EventStore.event_table_creation_ddl(:vertica).gsub(';', '')}
+          CREATE TABLE #{schema}.device_events (
+          id AUTO_INCREMENT PRIMARY KEY,
+          version BIGINT NOT NULL,
+          aggregate_id varchar(36) NOT NULL,
+          fully_qualified_name varchar(255) NOT NULL,
+          occurred_at DATETIME NOT NULL,
+          serialized_event VARBINARY(255) NOT NULL)
+
           PARTITION BY EXTRACT(year FROM occurred_at)*100 + EXTRACT(month FROM occurred_at);
 
           CREATE PROJECTION events.device_events_super_projecion /*+createtype(D)*/

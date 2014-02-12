@@ -1,0 +1,39 @@
+sqlite: &sqlite
+  adapter: sqlite
+  database: ':memory:' #in memory db; if you want it on disk, change it to anything else
+
+postgres: &postgres
+  adapter: postgres
+  database: nexia_history
+  host: localhost
+  port: 5432
+  username: nexia
+  password: Password1
+  encoding: UTF-8
+  pool: 100
+  reconnect: true
+
+vertica: &vertica
+  adapter: vertica
+  database: nexia_history
+  host: #see note in EventStore for getting the host ip of your vm
+  username: dbadmin
+  password: password
+
+development:
+  sqlite:
+    <<: *sqlite
+  postgres:
+    <<: *postgres
+  vertica:
+    <<: *vertica
+
+test:
+  sqlite:
+    <<: *sqlite
+  postgres:
+    <<: *postgres
+    database: nexia_history_test
+  vertica:
+    <<: *vertica
+    database: nexia_history_test

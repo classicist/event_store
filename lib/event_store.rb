@@ -7,12 +7,23 @@ require 'event_store/event_appender'
 require 'event_store/aggregate'
 require 'event_store/client'
 require 'event_store/errors'
+Sequel.extension :migration
 
 module EventStore
   Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :serialized_event, :version)
   SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event, :version, :occurred_at)
   SNAPSHOT_DELIMITER = "__NexEvStDelim__"
   @@schema = 'events'
+
+  def self.db_config(env, adapter)
+    if @config_file.nil?
+      file_path = File.expand_path(__FILE__ + '/../../db/database.yml')
+      @config_file = File.open(file_path,'r')
+      @config = YAML.load(@config_file)
+      @config_file.close
+    end
+    @config[env.to_s][adapter.to_s]
+  end
 
   def self.db
     @db
@@ -30,9 +41,13 @@ module EventStore
     @redis = Redis.new(config_hash)
   end
 
+  def self.local_redis_connect
+    redis_connect host: 'localhost', db: 14
+  end
+
   def self.clear!
     EventStore.db.from(Sequel.lit "#{EventStore.schema + '.' if EventStore.schema}device_events").delete
-    EventStore.redis.flushall
+    EventStore.redis.flushdb
   end
 
   def self.schema
@@ -40,79 +55,50 @@ module EventStore
   end
 
   def self.sqlite
-    redis_connect host: 'localhost'
-    create_db(:sqlite)
+    local_redis_connect
+    create_db(:sqlite, :test)
   end
 
-  def self.postgres(test = true)
-    redis_connect host: 'localhost'
-    create_db(:postgres, test)
+  def self.postgres(db_env = :test)
+    local_redis_connect
+    create_db(:postgres, db_env)
   end
 
-  def self.create_db(type, test = true, db_config = nil)
-    test_db = '_test' if test
+  def self.vertica(db_env = :test)
+    local_redis_connect
+    create_db(:vertica, db_env)
+  end
+
+  def self.production(database_config, redis_config)
+    self.redis_connect redis_config
+    self.connect database_config
+  end
+
+  def self.create_db(type, db_env, db_config = nil)
+    db_config ||= self.db_config(db_env, type)
+
     if type == :sqlite
-      EventStore.connect :adapter => :sqlite
-      begin
-        @db.run 'DROP TABLE device_events;'
-      rescue
-        #don't care if this fails bc it fails if there is no table, which is what we want
-      end
-        @@schema = nil
-        @db.run event_table_creation_ddl(type)
+      EventStore.connect db_config
+      @@schema = nil
+      Sequel::Migrator.apply(@db, 'db/sqlite_migrations')
     elsif type == :postgres
-      EventStore.connect :adapter => :postgres, :database => "nexia_history#{test_db}",
-        host: 'localhost', username: 'nexia', password: 'Password1', encoding: 'UTF-8',
-        pool: 100, reconnect: true, port: 5432
-
-      `bundle exec sequel -m db/pg_migrations postgres://nexia:Password1@localhost:5432/nexia_history#{test_db}`
+      EventStore.connect db_config
+      Sequel::Migrator.apply(@db, 'db/pg_migrations')
     elsif type == :vertica
       #To find the ip address of vertica on your local box (running in a vm)
       #1. open Settings -> Network and select Wi-Fi
       #2. open a terminal in the VM
       #3. do /sbin/ifconfig (ifconfig is not in $PATH)
       #4. the inet address for en0 is what you want
-      EventStore.connect :adapter => :vertica, :database => "nexia_history#{test_db}", host: vertica_host, username: 'dbadmin', password: 'password'
-      `bundle exec sequel -m db/migrations vertica://dbadmin:password@#{vertica_host}:5433/nexia_history#{test_db}`
+      #Hint: if it just hangs, you have have the wrong IP
+
+      db_config['host'] = vertica_host
+      EventStore.connect db_config
+      Sequel::Migrator.apply(@db, 'db/migrations')
     end
   end
 
   def self.vertica_host
     File.read File.expand_path("../../db/vertica_host_address.txt", __FILE__)
-  end
-
-  def self.event_table_creation_ddl(type)
-    if type == :sqlite
-    %Q<CREATE TABLE IF NOT EXISTS device_events (
-      id AUTO_INCREMENT PRIMARY KEY,
-      version BIGINT NOT NULL,
-      aggregate_id varchar(36) NOT NULL,
-      fully_qualified_name varchar(255) NOT NULL,
-      occurred_at DATETIME NOT NULL,
-      serialized_event VARBINARY(255) NOT NULL);>
-    elsif type == :vertica
-      %Q<CREATE TABLE #{schema} device_events (
-      id AUTO_INCREMENT PRIMARY KEY,
-      version BIGINT NOT NULL,
-      aggregate_id varchar(36) NOT NULL,
-      fully_qualified_name varchar(255) NOT NULL,
-      occurred_at DATETIME NOT NULL,
-      serialized_event VARBINARY(255) NOT NULL);>
-    end
-  end
-end
-
-#http://stackoverflow.com/questions/1114725/using-utc-with-sequel
-module Sequel
-    def self.string_to_datetime(string)
-    begin
-      if datetime_class == DateTime
-        DateTime.parse(string, convert_two_digit_years)
-      else
-        Time.parse(string + " +00:00").utc
-      end
-    rescue => e
-      raise convert_exception_class(e, InvalidValue)
-    end
   end
 end

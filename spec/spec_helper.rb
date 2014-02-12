@@ -20,7 +20,6 @@ require 'sequel'
 require 'sequel/extensions/migration'
 require 'event_store'
 
-
 EventStore.sqlite
 
 RSpec.configure do |config|
