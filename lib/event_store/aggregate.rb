@@ -7,7 +7,7 @@ module EventStore
       @id = id
       @type = type
       @schema = EventStore.schema
-      @event_table = Sequel.lit "#{@schema + '.' if @schema}#{@type}_events"
+      @event_table = EventStore.fully_qualified_table
       @snapshot_table = "#{@type}_snapshots_for_#{@id}"
       @snapshot_version_table = "#{@type}_snapshot_versions_for_#{@id}"
     end

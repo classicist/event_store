@@ -15,7 +15,6 @@ module EventStore
           raise concurrency_error(event) if has_concurrency_issue?(event)
           event
         end
-
         # All concurrency issues need to be checked before persisting any of the events
         # Otherwise, the newly appended events may raise erroneous concurrency errors
         result = @aggregate.events.multi_insert(prepared_events)

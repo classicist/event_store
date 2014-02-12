@@ -1,6 +1,7 @@
+require 'event_store'
 Sequel.migration do
   change do
-    create_table(:device_events) do
+    create_table(EventStore.fully_qualified_table.to_sym) do
       primary_key :id
       Bignum      :version
       index       :version

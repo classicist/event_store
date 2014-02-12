@@ -1,10 +1,10 @@
 require 'event_store'
 Sequel.migration do
   up do
-    schema = 'events'
-    run %Q< CREATE SCHEMA #{schema};
 
-          CREATE TABLE #{schema}.device_events (
+    run %Q< CREATE SCHEMA #{EventStore.schema};
+
+          CREATE TABLE #{EventStore.fully_qualified_table} (
           id AUTO_INCREMENT PRIMARY KEY,
           version BIGINT NOT NULL,
           aggregate_id varchar(36) NOT NULL,
@@ -14,7 +14,7 @@ Sequel.migration do
 
           PARTITION BY EXTRACT(year FROM occurred_at)*100 + EXTRACT(month FROM occurred_at);
 
-          CREATE PROJECTION events.device_events_super_projecion /*+createtype(D)*/
+          CREATE PROJECTION #{EventStore.fully_qualified_table}_super_projecion /*+createtype(D)*/
           (
            id ENCODING COMMONDELTA_COMP,
            version ENCODING COMMONDELTA_COMP,
@@ -30,12 +30,12 @@ Sequel.migration do
                   fully_qualified_name,
                   occurred_at,
                   serialized_event
-           FROM events.device_events
+           FROM #{EventStore.fully_qualified_table}
            ORDER BY aggregate_id,
                     version
           SEGMENTED BY HASH(aggregate_id) ALL NODES;
 
-          CREATE PROJECTION events.device_events_runtime_history /*+createtype(D)*/
+          CREATE PROJECTION #{EventStore.fully_qualified_table}_runtime_history_projection /*+createtype(D)*/
           (
            version ENCODING DELTAVAL,
            aggregate_id ENCODING RLE,
@@ -49,7 +49,7 @@ Sequel.migration do
                   fully_qualified_name,
                   occurred_at,
                   serialized_event
-           FROM events.device_events
+           FROM #{EventStore.fully_qualified_table}
            ORDER BY aggregate_id,
                     occurred_at,
                     fully_qualified_name
@@ -57,6 +57,6 @@ Sequel.migration do
   end
 
   down do
-    run 'DROP SCHEMA #{schema} CASCADE;'
+    run 'DROP SCHEMA #{EventStore.schema} CASCADE;'
   end
 end

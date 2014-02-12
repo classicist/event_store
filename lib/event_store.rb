@@ -13,16 +13,19 @@ module EventStore
   Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :serialized_event, :version)
   SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event, :version, :occurred_at)
   SNAPSHOT_DELIMITER = "__NexEvStDelim__"
-  @@schema = 'events'
 
   def self.db_config(env, adapter)
-    if @config_file.nil?
+    raw_db_config[env.to_s][adapter.to_s]
+  end
+
+  def self.raw_db_config
+    if @raw_db_config.nil?
       file_path = File.expand_path(__FILE__ + '/../../db/database.yml')
       @config_file = File.open(file_path,'r')
-      @config = YAML.load(@config_file)
+      @raw_db_config = YAML.load(@config_file)
       @config_file.close
     end
-    @config[env.to_s][adapter.to_s]
+    @raw_db_config
   end
 
   def self.db
@@ -42,16 +45,25 @@ module EventStore
   end
 
   def self.local_redis_connect
-    redis_connect host: 'localhost', db: 14
-  end
-
-  def self.clear!
-    EventStore.db.from(Sequel.lit "#{EventStore.schema + '.' if EventStore.schema}device_events").delete
-    EventStore.redis.flushdb
+    redis_connect raw_db_config['redis']
   end
 
   def self.schema
-    @@schema
+    @schema ||= raw_db_config['schema']
+  end
+
+  def self.table_name
+    @table_name ||= raw_db_config['table_name']
+  end
+
+  def self.fully_qualified_table
+    table = "#{schema}.#{table_name}"
+    @db_type == :sqlite ? table : Sequel.lit(table)
+  end
+
+  def self.clear!
+    EventStore.db.from(fully_qualified_table).delete
+    EventStore.redis.flushdb
   end
 
   def self.sqlite
@@ -75,11 +87,11 @@ module EventStore
   end
 
   def self.create_db(type, db_env, db_config = nil)
+    @db_type = type
     db_config ||= self.db_config(db_env, type)
 
     if type == :sqlite
       EventStore.connect db_config
-      @@schema = nil
       Sequel::Migrator.apply(@db, 'db/sqlite_migrations')
     elsif type == :postgres
       EventStore.connect db_config

@@ -12,6 +12,7 @@ SimpleCov.formatter = SimpleCov::Formatter::MergedFormatter
 
 SimpleCov.start do
   add_filter "/spec/"
+  add_filter 'lib/event_store.rb'
   SimpleCov.minimum_coverage 95
 end
 
@@ -20,7 +21,7 @@ require 'sequel'
 require 'sequel/extensions/migration'
 require 'event_store'
 
-EventStore.sqlite
+EventStore.postgres
 
 RSpec.configure do |config|
   config.after(:each) do

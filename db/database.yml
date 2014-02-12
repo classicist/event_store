@@ -20,6 +20,13 @@ vertica: &vertica
   username: dbadmin
   password: password
 
+schema: events
+table_name: thermostat_events
+
+redis:
+  host: localhost
+  db: 14
+
 development:
   sqlite:
     <<: *sqlite
