@@ -1,6 +1,8 @@
 # EventStore
 
-Ruby implementation of an EventSource (A+ES) for the Nexia Ecosystem.
+A Very Fast Ruby implementation of an EventStore (A+ES).
+For more detail on what an EventStore is checkout what Gregg Young has to stay about it:
+http://codebetter.com/gregyoung/2010/02/20/why-use-event-sourcing/
 
 # Usage
 
@@ -27,7 +29,12 @@ EventStore.connect_db(redis_config, database_config) #The redis and database con
 - `vertica` expects to find an environment variable (VERTICA_HOST) to be set and will use this as the host in dev and test mode
 - `vertica` will assume its default port if one is not supplied.
 - `vertica` will try to connect in dev and test mode as 'dbadmin:password@[vertica_host]'
-
+- To find the ip address of vertica on your local box (running in a vm):
+  1. open Settings -> Network and select Wi-Fi
+  2. open a terminal in the VM
+  3. do /sbin/ifconfig (ifconfig is not in $PATH)
+  4. the inet address for en0 is what you want
+  Hint: if it just hangs, you have have the wrong IP
 
 ### Creating a client
 
