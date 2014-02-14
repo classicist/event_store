@@ -10,7 +10,7 @@ Gem::Specification.new do |spec|
   spec.description   = ["A Ruby implementation of an EventSource (A+ES) tuned for Vertica or Postgres"]
   spec.email         = ["classicist@gmail.com"]
   spec.summary       = %q{Ruby implementation of an EventSource (A+ES) for the Nexia Ecosystem}
-  spec.homepage      = ""
+  spec.homepage      = "https://github.com/nexiahome/event_store"
   spec.license       = "MIT"
 
   spec.files         = `git ls-files`.split($/)
