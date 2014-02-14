@@ -1,6 +1,6 @@
 # EventStore
 
-A Very Fast Ruby implementation of an EventStore (A+ES).
+A fast, production ready Ruby implementation of an EventStore (A+ES).
 For more detail on what an EventStore is checkout what Gregg Young has to stay about it:
 http://codebetter.com/gregyoung/2010/02/20/why-use-event-sourcing/
 
