@@ -1,7 +1,6 @@
 require 'event_store'
 Sequel.migration do
   change do
-    create_schema(EventStore.schema.to_sym)
     create_table((EventStore.schema + "__" + EventStore.table_name).to_sym) do
       primary_key :id
       Bignum      :version

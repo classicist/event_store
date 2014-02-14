@@ -2,9 +2,7 @@ require 'event_store'
 Sequel.migration do
   up do
 
-    run %Q< CREATE SCHEMA #{EventStore.schema};
-
-          CREATE TABLE #{EventStore.fully_qualified_table} (
+    run %Q<CREATE TABLE #{EventStore.fully_qualified_table} (
           id AUTO_INCREMENT PRIMARY KEY,
           version BIGINT NOT NULL,
           aggregate_id varchar(36) NOT NULL,

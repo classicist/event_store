@@ -5,6 +5,7 @@ sqlite: &sqlite
 postgres: &postgres
   adapter: postgres
   database: nexia_history
+  schema: events
   host: localhost
   port: 5432
   username: nexia
@@ -16,11 +17,11 @@ postgres: &postgres
 vertica: &vertica
   adapter: vertica
   database: nexia_history
+  schema: events
   host: #see note in EventStore for getting the host ip of your vm
   username: dbadmin
   password: password
 
-schema: events
 table_name: thermostat_events
 
 redis:
@@ -40,7 +41,9 @@ test:
     <<: *sqlite
   postgres:
     <<: *postgres
-    database: nexia_history_test
+    database: nexia_history
+    schema: events_test
   vertica:
     <<: *vertica
-    database: nexia_history_test
+    database: nexia_history
+    schema: events_test

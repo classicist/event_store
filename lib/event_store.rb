@@ -50,7 +50,7 @@ module EventStore
   end
 
   def self.schema
-    @schema ||= raw_db_config['schema']
+    @schema ||= raw_db_config[@environment][@database]['schema']
   end
 
   def self.table_name
@@ -59,7 +59,7 @@ module EventStore
 
   def self.fully_qualified_table
     table = "#{schema}.#{table_name}"
-    @db_type == :sqlite ? table : Sequel.lit(table)
+    @db_type == 'sqlite' ? table : Sequel.lit(table)
   end
 
   def self.clear!
@@ -68,18 +68,24 @@ module EventStore
   end
 
   def self.sqlite
+    @database = 'sqlite'
+    @environment = 'test'
     local_redis_connect
-    create_db(:sqlite, :test)
+    create_db(@database, @environment)
   end
 
   def self.postgres(db_env = :test)
+    @database = 'postgres'
+    @environment = db_env.to_s
     local_redis_connect
-    create_db(:postgres, db_env)
+    create_db( @database, @environment)
   end
 
   def self.vertica(db_env = :test)
+    @database = 'vertica'
+    @environment = db_env.to_s
     local_redis_connect
-    create_db(:vertica, db_env)
+    create_db(@database, @environment)
   end
 
   def self.production(database_config, redis_config)
@@ -91,13 +97,17 @@ module EventStore
     @db_type = type
     db_config ||= self.db_config(db_env, type)
 
-    if type == :sqlite
+    if type == 'sqlite'
       EventStore.connect db_config
       Sequel::Migrator.apply(@db, 'db/sqlite_migrations')
-    elsif type == :postgres
+    elsif type == 'postgres'
       EventStore.connect db_config
-      Sequel::Migrator.apply(@db, 'db/pg_migrations')
-    elsif type == :vertica
+
+      puts "schema: #{schema} exits:"
+      puts schema_exits = @db.table_exists?("#{schema}__schema_info".to_sym)
+      @db.run "CREATE SCHEMA #{EventStore.schema};" unless schema_exits
+      Sequel::Migrator.run(@db, 'db/pg_migrations', :table=> "#{schema}__schema_info".to_sym)
+    elsif type == 'vertica'
       #To find the ip address of vertica on your local box (running in a vm)
       #1. open Settings -> Network and select Wi-Fi
       #2. open a terminal in the VM
@@ -107,7 +117,10 @@ module EventStore
 
       db_config['host'] = vertica_host
       EventStore.connect db_config
-      Sequel::Migrator.apply(@db, 'db/migrations')
+
+      schema_exits = @db.table_exists?("#{schema}__schema_info".to_sym)
+      @db.run "CREATE SCHEMA #{EventStore.schema};" unless schema_exits
+      Sequel::Migrator.run(@db, 'db/migrations', :table=> "#{schema}__schema_info".to_sym)
     end
   end
 
