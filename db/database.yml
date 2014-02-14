@@ -1,11 +1,7 @@
-sqlite: &sqlite
-  adapter: sqlite
-  database: ':memory:' #in memory db; if you want it on disk, change it to anything else
-
 postgres: &postgres
   adapter: postgres
-  database: nexia_history
-  schema: events
+  database: history_store
+  schema: event_store
   host: localhost
   port: 5432
   username: nexia
@@ -16,8 +12,8 @@ postgres: &postgres
 
 vertica: &vertica
   adapter: vertica
-  database: nexia_history
-  schema: events
+  database: history_store
+  schema: event_store
   host: #see note in EventStore for getting the host ip of your vm
   username: dbadmin
   password: password
@@ -29,21 +25,17 @@ redis:
   db: 14
 
 development:
-  sqlite:
-    <<: *sqlite
   postgres:
     <<: *postgres
   vertica:
     <<: *vertica
 
 test:
-  sqlite:
-    <<: *sqlite
   postgres:
     <<: *postgres
-    database: nexia_history
-    schema: events_test
+    database: history_store
+    schema: event_store_test
   vertica:
     <<: *vertica
-    database: nexia_history
-    schema: events_test
+    database: history_store
+    schema: event_store_test

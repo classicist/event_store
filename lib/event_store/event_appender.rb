@@ -56,7 +56,7 @@ module EventStore
     def prepare_event raw_event
       { :version              => raw_event.version.to_i,
         :aggregate_id         => raw_event.aggregate_id,
-        :occurred_at          => raw_event.occurred_at.to_s, #to_s truncates microseconds, which brake Time equality
+        :occurred_at          => Time.parse(raw_event.occurred_at.to_s).utc, #to_s truncates microseconds, which brake Time equality
         :serialized_event     => raw_event.serialized_event,
         :fully_qualified_name => raw_event.fully_qualified_name }
     end

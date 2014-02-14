@@ -7,7 +7,7 @@ Gem::Specification.new do |spec|
   spec.name          = "event_store"
   spec.version       = EventStore::VERSION
   spec.authors       = ["Paul Saieg, John Colvin", "Stuart Nelson"]
-  spec.description   = ["A Ruby implementation of an EventSource (A+ES) tuned for Vertica"]
+  spec.description   = ["A Ruby implementation of an EventSource (A+ES) tuned for Vertica or Postgres"]
   spec.email         = ["classicist@gmail.com"]
   spec.summary       = %q{Ruby implementation of an EventSource (A+ES) for the Nexia Ecosystem}
   spec.homepage      = ""
@@ -26,10 +26,9 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "guard-rspec"
   spec.add_development_dependency "pry-debugger"
   spec.add_development_dependency "mock_redis"
-  spec.add_development_dependency 'sqlite3'
-  spec.add_development_dependency 'pg'
 
   spec.add_dependency "sequel", "~> 3.42"
   spec.add_dependency 'sequel-vertica', '~> 0.1.0'
+  spec.add_dependency 'pg', '~> 0.17.1'
   spec.add_dependency 'redis', "~> 3.0.7"
 end

@@ -7,10 +7,10 @@ Sequel.migration do
           version BIGINT NOT NULL,
           aggregate_id varchar(36) NOT NULL,
           fully_qualified_name varchar(255) NOT NULL,
-          occurred_at DATETIME NOT NULL,
+          occurred_at TIMESTAMPTZ NOT NULL,
           serialized_event VARBINARY(255) NOT NULL)
 
-          PARTITION BY EXTRACT(year FROM occurred_at)*100 + EXTRACT(month FROM occurred_at);
+          PARTITION BY EXTRACT(year FROM occurred_at AT TIME ZONE 'UTC')*100 + EXTRACT(month FROM occurred_at AT TIME ZONE 'UTC');
 
           CREATE PROJECTION #{EventStore.fully_qualified_table}_super_projecion /*+createtype(D)*/
           (
