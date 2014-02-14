@@ -15,8 +15,10 @@ EventStore.postgres #test
 
 EventStore.vertica(:development)
 EventStore.vertica #test
+```
 
-#Production
+### Connecting in Production
+```ruby
 EventStore.connect_db(redis_config, database_config) #The redis and database configs are the standard hashes expected by the databases -- we just pass them directly in
 ```
 
