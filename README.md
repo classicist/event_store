@@ -41,6 +41,9 @@ EventStore.connect_db(redis_config, database_config) #The redis and database con
 ```ruby
 client = EventStore::Client.new(aggregate_id)
 
+# transactionally append an array events to an aggregate's event stream
+client.append(events)
+
 # Get a list of events representing a snapshot of the aggregate's current state (fast)
 client.snapshot
 
@@ -55,9 +58,6 @@ client.event_stream_from(347, 1000)
 
 # Get the last event for an aggregate
 client.peek
-
-# Append events to an aggregate's event stream
-client.append(events, expected_version)
 
 # Get the current version of an aggregate
 client.version
