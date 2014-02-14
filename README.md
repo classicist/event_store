@@ -19,7 +19,8 @@ EventStore.vertica #test
 
 ### Connecting in Production
 ```ruby
-EventStore.connect_db(redis_config, database_config) #The redis and database configs are the standard hashes expected by the databases -- we just pass them directly in
+EventStore.connect_db(redis_config, database_config) 
+#The redis and database configs are the standard hashes expected by the databases -- we just pass them directly in
 ```
 
 ### Notes on Connecting
