@@ -95,7 +95,7 @@ module EventStore
       #3. do /sbin/ifconfig (ifconfig is not in $PATH)
       #4. the inet address for en0 is what you want
       #Hint: if it just hangs, you have have the wrong IP
-      db_config['host'] = vertica_host
+      db_config['host'] = ENV['VERTICA_HOST'] || vertica_host
       @migrations_dir = 'db/migrations'
     else
       @migrations_dir = 'db/pg_migrations'
