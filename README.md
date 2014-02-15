@@ -39,7 +39,11 @@ EventStore.custom_config(redis_config, database_config)
   4. the inet address for en0 is what you want
   Hint: if it just hangs, you have have the wrong IP
 
-### Creating a client
+
+### Caveat Emptor  
+`redis`, by default, is using database 15. Running the tests will DROP this database every time they run. 
+
+### Usage
 
 ```ruby
 client = EventStore::Client.new(aggregate_id)
@@ -65,6 +69,24 @@ client.peek
 # Get the current version of an aggregate
 client.version
 
-# Drop all the events associated with an aggregate, including its snapshot
+# Drop all events associated with an aggregate, including its snapshot
 client.destroy!
+
+# Drop all events associated with ALL aggregate
+EventStore.clear!
+```
+
+### Rspec
+```ruby
+To have event_store cleanup between tests, put this in your spec_helper.rb:
+
+require 'event_store'
+
+EventStore.postgres
+
+RSpec.configure do |config|
+  config.after(:each) do
+    EventStore.clear!
+  end
+end
 ```
