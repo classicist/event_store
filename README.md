@@ -43,12 +43,24 @@ EventStore.custom_config(redis_config, database_config)
 ### Caveat Emptor  
 `redis`, by default, is using database 15. Running the tests will DROP this database every time they run. 
 
-### Date
+### Data Structures
 EventStore uses two simple data structures:
 ```ruby
   EventStore::Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :serialized_event, :version)
   EventStore::SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event, :version, :occurred_at)
 ```
+- `aggregate_id` is a string uniquely identifying your aggregate
+- `occurred_at` is a UTC timestamp (for simplicty, EventStore assumes all times given in UTC)
+- `fully_qualified_name` is the connonical name of the event whose data you are storing
+- `serialized_event` is a byte array representing the actual event data (in Vertica is a `VARBINARY(1000)` in postgres it is a `BYTEA`
+- `version` is the monotonically increasing version number of each event. This number should be incremented by one, starting at the client's current version (see `client.version` below) for each event the client wants to store.
+
+```ruby
+  client = EventStore::Client.new(device.mac_address)
+  EventStore::Event.new(client.id, Time.now.utc, 'name_updated', DeviceNameUpdated.to_binary, client.version + 1) 
+```
+
+
 `EventStore::Events` are appended to the `EventStore` and `EventStore::SerializedEvent` are returned from it. The reason for the asymmetry is performance. When you are deserializing thousands or millions of events and they all have the same aggregate id, there is no reason to deserialize that field, and doubly so if you are using a column-store database like Vertica.
 
 ###Usage
@@ -84,11 +96,11 @@ EventStore.clear!
 ```
 
 ### Rspec
-To have event_store cleanup between tests, put this in your spec_helper.rb:
+To have event_store cleanup after each spec, drop this in your spec_helper.rb:
 ```ruby
 require 'event_store'
 
-EventStore.postgres
+EventStore.postgres #connect to postgres for specs, if you like
 
 RSpec.configure do |config|
   config.after(:each) do
