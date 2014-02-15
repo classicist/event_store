@@ -31,4 +31,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'sequel-vertica', '~> 0.1.0'
   spec.add_dependency 'pg', '~> 0.17.1'
   spec.add_dependency 'redis', "~> 3.0.7"
+  spec.add_dependency 'hiredis'
 end

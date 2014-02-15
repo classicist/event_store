@@ -18,11 +18,12 @@ vertica: &vertica
   username: dbadmin
   password: password
 
-table_name: thermostat_events
+table_name: events
 
 redis:
   host: localhost
-  db: 14
+  driver: hiredis
+  db: 15
 
 development:
   postgres:
