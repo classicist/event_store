@@ -43,8 +43,15 @@ EventStore.custom_config(redis_config, database_config)
 ### Caveat Emptor  
 `redis`, by default, is using database 15. Running the tests will DROP this database every time they run. 
 
-### Usage
+### Date
+EventStore uses two simple data structures:
+```ruby
+  EventStore::Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :serialized_event, :version)
+  EventStore::SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event, :version, :occurred_at)
+```
+`EventStore::Events` are appended to the `EventStore` and `EventStore::SerializedEvent` are returned from it. The reason for the asymmetry is performance. When you are deserializing thousands or millions of events and they all have the same aggregate id, there is no reason to deserialize that field, and doubly so if you are using a column-store database like Vertica.
 
+###Usage
 ```ruby
 client = EventStore::Client.new(aggregate_id)
 
