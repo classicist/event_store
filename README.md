@@ -77,9 +77,8 @@ EventStore.clear!
 ```
 
 ### Rspec
-```ruby
 To have event_store cleanup between tests, put this in your spec_helper.rb:
-
+```ruby
 require 'event_store'
 
 EventStore.postgres
