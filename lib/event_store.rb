@@ -15,8 +15,8 @@ module EventStore
   SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event, :version, :occurred_at)
   SNAPSHOT_DELIMITER = "__NexEvStDelim__"
 
-  def self.db_config(env, adapter)
-    raw_db_config[env.to_s][adapter.to_s]
+  def self.db_config
+    raw_db_config[@environment.to_s][@adapter.to_s]
   end
 
   def self.raw_db_config
@@ -50,7 +50,7 @@ module EventStore
   end
 
   def self.schema
-    @schema ||= raw_db_config[@environment][@database]['schema']
+    @schema ||= raw_db_config[@environment][@adapter]['schema']
   end
 
   def self.table_name
@@ -66,48 +66,49 @@ module EventStore
     EventStore.redis.flushdb
   end
 
-  def self.postgres(db_env = :test)
-    @database = 'postgres'
-    @environment = db_env.to_s
+  def self.postgres(environment = 'test')
     local_redis_connect
-    create_db( @database, @environment)
+    @adapter        = 'postgres'
+    @environment    = environment.to_s
+    @db_config      ||= self.db_config
+    create_db
   end
 
-  def self.vertica(db_env = :test)
-    @database = 'vertica'
-    @environment = db_env.to_s
+  #To find the ip address of vertica on your local box (running in a vm)
+  #1. open Settings -> Network and select Wi-Fi
+  #2. open a terminal in the VM
+  #3. do /sbin/ifconfig (ifconfig is not in $PATH)
+  #4. the inet address for en0 is what you want
+  #Hint: if it just hangs, you have have the wrong IP
+  def self.vertica(environment = 'test')
     local_redis_connect
-    create_db(@database, @environment)
+    @adapter             = 'vertica'
+    @environment         = environment.to_s
+    @db_config         ||= self.db_config
+    @db_config['host'] ||= ENV['VERTICA_HOST'] || vertica_host
+    create_db
   end
 
-  def self.production(database_config, redis_config)
-    self.redis_connect redis_config
-    self.connect database_config
+  def self.custom_config(database_config, redis_config, envrionment = 'production')
+    self.redis_connect(redis_config)
+    @adapter        = database_config['adapter'].to_s
+    @environment    = envrionment
+    @db_config      = database_config
+    create_db
   end
 
-  def self.create_db(type, db_env, db_config = nil)
-    @db_type = type
-    db_config ||= self.db_config(db_env, type)
-    if type == 'vertica'
-      #To find the ip address of vertica on your local box (running in a vm)
-      #1. open Settings -> Network and select Wi-Fi
-      #2. open a terminal in the VM
-      #3. do /sbin/ifconfig (ifconfig is not in $PATH)
-      #4. the inet address for en0 is what you want
-      #Hint: if it just hangs, you have have the wrong IP
-      db_config['host'] = ENV['VERTICA_HOST'] || vertica_host
-      @migrations_dir = 'db/migrations'
-    else
-      @migrations_dir = 'db/pg_migrations'
-    end
+  def self.migrations_dir
+     @adapter == 'vertica' ? 'migrations' : 'pg_migrations'
+  end
 
-    EventStore.connect db_config
+  def self.create_db
+    self.connect(@db_config)
     schema_exits = @db.table_exists?("#{schema}__schema_info".to_sym)
     @db.run "CREATE SCHEMA #{EventStore.schema};" unless schema_exits
-    Sequel::Migrator.run(@db, @migrations_dir, :table=> "#{schema}__schema_info".to_sym)
+    Sequel::Migrator.run(@db, File.expand_path(File.join('..','..','db', self.migrations_dir), __FILE__), :table=> "#{schema}__schema_info".to_sym)
   end
 
   def self.vertica_host
-    File.read File.expand_path("../../db/vertica_host_address.txt", __FILE__)
+    File.read File.expand_path(File.join('..','..','db', 'vertica_host_address.txt'), __FILE__)
   end
 end
