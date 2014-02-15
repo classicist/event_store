@@ -8,7 +8,7 @@ Sequel.migration do
           aggregate_id varchar(36) NOT NULL,
           fully_qualified_name varchar(255) NOT NULL,
           occurred_at TIMESTAMPTZ NOT NULL,
-          serialized_event VARBINARY(255) NOT NULL)
+          serialized_event VARBINARY(1000) NOT NULL)
 
           PARTITION BY EXTRACT(year FROM occurred_at AT TIME ZONE 'UTC')*100 + EXTRACT(month FROM occurred_at AT TIME ZONE 'UTC');
 
