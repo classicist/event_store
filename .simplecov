@@ -12,5 +12,5 @@ SimpleCov.formatter = SimpleCov::Formatter::MergedFormatter
 SimpleCov.start do
   add_filter "_spec.rb"
 
-  SimpleCov.minimum_coverage 91
+  SimpleCov.minimum_coverage 96
 end
