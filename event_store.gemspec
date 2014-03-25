@@ -32,4 +32,5 @@ Gem::Specification.new do |spec|
   spec.add_dependency 'pg', '~> 0.17.1'
   spec.add_dependency 'redis', "~> 3.0.7"
   spec.add_dependency 'hiredis'
+  spec.add_development_dependency 'rspec_junit_formatter'
 end
