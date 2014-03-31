@@ -81,7 +81,7 @@ module EventStore
 
     def translate_event(event_hash)
       occurred_at =  TimeHacker.translate_occurred_at_from_local_to_gmt(event_hash[:occurred_at])
-      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version], occurred_at
+      SerializedEvent.new event_hash[:fully_qualified_name], EventStore.unescape_bytea(event_hash[:serialized_event]), event_hash[:version], occurred_at
     end
   end
 end

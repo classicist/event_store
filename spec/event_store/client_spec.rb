@@ -14,7 +14,7 @@ describe EventStore::Client do
     events_by_aggregate_id  = {AGGREGATE_ID_ONE => [], AGGREGATE_ID_TWO => []}
     @event_time = Time.parse("2001-01-01 00:00:00 UTC")
     ([AGGREGATE_ID_ONE]*10 + [AGGREGATE_ID_TWO]*10).shuffle.each_with_index do |aggregate_id, version|
-      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', serialized_event_data, version)
+      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', serialized_binary_event_data, version)
     end
     client_1.append events_by_aggregate_id[AGGREGATE_ID_ONE]
     client_2.append events_by_aggregate_id[AGGREGATE_ID_TWO]
@@ -123,7 +123,7 @@ describe EventStore::Client do
 
     it 'should return the last event in the event stream' do
       last_event = EventStore.db.from(client.event_table).where(aggregate_id: AGGREGATE_ID_ONE).order(:version).last
-      subject.should == EventStore::SerializedEvent.new(last_event[:fully_qualified_name], last_event[:serialized_event].to_s, last_event[:version], @event_time)
+      subject.should == EventStore::SerializedEvent.new(last_event[:fully_qualified_name], EventStore.unescape_bytea(last_event[:serialized_event]), last_event[:version], @event_time)
     end
   end
 
@@ -257,14 +257,14 @@ describe EventStore::Client do
         @client = es_client.new(AGGREGATE_ID_THREE, :device)
         @client.snapshot.length.should == 0
         version = @client.version
-        @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn|EventStore::Event.new(AGGREGATE_ID_THREE, Time.now.utc, fqn, 234532.to_s(2), version += 1)}
+        @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn|EventStore::Event.new(AGGREGATE_ID_THREE, Time.now.utc, fqn, serialized_binary_event_data, version += 1)}
       end
 
       it "finds the most recent records for each type" do
         version = @client.version
-        expected_snapshot = %w{ e1 e2 e3 e4 e5 }.map {|fqn| EventStore::SerializedEvent.new(fqn, 234532.to_s(2), version +=1 ) }
-        @client.event_stream.length.should == 10
+        expected_snapshot = %w{ e1 e2 e3 e4 e5 }.map {|fqn| EventStore::SerializedEvent.new(fqn, serialized_binary_event_data, version +=1 ) }
         actual_snapshot = @client.snapshot
+        @client.event_stream.length.should == 10
         actual_snapshot.length.should == 5
         actual_snapshot.map(&:fully_qualified_name).should == ["e3", "e1", "e2", "e5", "e4"] #sorted by version no
         actual_snapshot.map(&:serialized_event).should == expected_snapshot.map(&:serialized_event)
@@ -288,8 +288,9 @@ describe EventStore::Client do
       EventStore.redis.hset(aggregate.snapshot_version_table, :current_version, 1000)
     end
 
-    def serialized_event_data
-      "#{234532.to_s(2)}_foo}"
-    end
+  end
+  def serialized_binary_event_data
+    @event_data ||= File.open(File.expand_path("../serialized_binary_event_data.txt", __FILE__), 'rb') {|f| f.read}
+    @event_data
   end
 end

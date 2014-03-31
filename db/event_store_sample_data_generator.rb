@@ -1,6 +1,6 @@
 # require_relative '../../protocol_buffers/lib/protocol_buffers'
 require 'faceplate_api'
-require "faceplate_api/thermostats/test_support/event_mother"
+require "faceplate_api/thermostats/test_support"
 require 'securerandom'
 require 'time'
 include FaceplateApi
@@ -15,7 +15,7 @@ versions_per_device = (0..(event_names.length * ITERATIONS)).to_a
 
 mothers = {}
 aggregate_ids.each do |aggregate_id|
-  mother  = Thermostats::EventMother.new(device_id: aggregate_id)
+  mother  = FaceplateApi::EventFixture.new(header: {device_id: aggregate_id}).event_mother
   mothers[mother] = versions_per_device.dup
 end
 
