@@ -1,24 +1,28 @@
 require 'spec_helper'
+require 'securerandom'
+AGGREGATE_ID_ONE   = SecureRandom.uuid
+AGGREGATE_ID_TWO   = SecureRandom.uuid
+AGGREGATE_ID_THREE = SecureRandom.uuid
 
 describe EventStore::Client do
   let(:es_client) { EventStore::Client }
 
   before do
-    client_1 = es_client.new('1', :device)
-    client_2 = es_client.new('2', :device)
+    client_1 = es_client.new(AGGREGATE_ID_ONE, :device)
+    client_2 = es_client.new(AGGREGATE_ID_TWO, :device)
 
-    events_by_aggregate_id  = {'1' => [], '2' => []}
+    events_by_aggregate_id  = {AGGREGATE_ID_ONE => [], AGGREGATE_ID_TWO => []}
     @event_time = Time.parse("2001-01-01 00:00:00 UTC")
-    ([1]*10 + [2]*10).shuffle.each_with_index do |aggregate_id, version|
+    ([AGGREGATE_ID_ONE]*10 + [AGGREGATE_ID_TWO]*10).shuffle.each_with_index do |aggregate_id, version|
       events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', "#{234532.to_s(2)}_foo}", version)
     end
-    client_1.append events_by_aggregate_id['1']
-    client_2.append events_by_aggregate_id['2']
+    client_1.append events_by_aggregate_id[AGGREGATE_ID_ONE]
+    client_2.append events_by_aggregate_id[AGGREGATE_ID_TWO]
   end
 
   describe '#raw_event_stream' do
     it "should be an array of hashes that represent database records, not EventStore::SerializedEvent objects" do
-      raw_stream = es_client.new(1, :device).raw_event_stream
+      raw_stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
       raw_stream.class.should == Array
       raw_event = raw_stream.first
       raw_event.class.should == Hash
@@ -31,19 +35,19 @@ describe EventStore::Client do
     end
 
     it 'should only have events for a single aggregate' do
-      stream = es_client.new(1, :device).raw_event_stream
-      stream.each { |event| event[:aggregate_id].should == '1' }
+      stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
+      stream.each { |event| event[:aggregate_id].should == AGGREGATE_ID_ONE }
     end
 
     it 'should have all events for that aggregate' do
-      stream = es_client.new(1, :device).raw_event_stream
+      stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
       expect(stream.count).to eq(10)
     end
   end
 
   describe '#event_stream' do
     it "should be an array of EventStore::SerializedEvent objects" do
-      stream = es_client.new(1, :device).event_stream
+      stream = es_client.new(AGGREGATE_ID_ONE, :device).event_stream
       stream.class.should == Array
       event = stream.first
       event.class.should == EventStore::SerializedEvent
@@ -55,20 +59,20 @@ describe EventStore::Client do
     end
 
     it 'should only have events for a single aggregate' do
-      raw_stream = es_client.new(1, :device).raw_event_stream
-      stream = es_client.new(1, :device).event_stream
+      raw_stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
+      stream = es_client.new(AGGREGATE_ID_ONE, :device).event_stream
       stream.map(&:fully_qualified_name).should == raw_stream.inject([]){|m, event| m << event[:fully_qualified_name]; m}
     end
 
     it 'should have all events for that aggregate' do
-      stream = es_client.new(1, :device).event_stream
+      stream = es_client.new(AGGREGATE_ID_ONE, :device).event_stream
       expect(stream.count).to eq(10)
     end
   end
 
 
   describe '#raw_event_streams_from_version' do
-    subject { es_client.new(1, :device) }
+    subject { es_client.new(AGGREGATE_ID_ONE, :device) }
 
     it 'should return all the raw events in the stream starting from a certain version' do
       minimum_event_version = 2
@@ -91,7 +95,7 @@ describe EventStore::Client do
   end
 
   describe 'event_stream_from_version' do
-    subject { es_client.new(1, :device) }
+    subject { es_client.new(AGGREGATE_ID_ONE, :device) }
 
     it 'should return all the raw events in the stream starting from a certain version' do
       minimum_event_version = 2
@@ -114,24 +118,24 @@ describe EventStore::Client do
   end
 
   describe '#peek' do
-    let(:client) {es_client.new(1, :device)}
+    let(:client) {es_client.new(AGGREGATE_ID_ONE, :device)}
     subject { client.peek }
 
     it 'should return the last event in the event stream' do
-      last_event = EventStore.db.from(client.event_table).where(aggregate_id: '1').order(:version).last
+      last_event = EventStore.db.from(client.event_table).where(aggregate_id: AGGREGATE_ID_ONE).order(:version).last
       subject.should == EventStore::SerializedEvent.new(last_event[:fully_qualified_name], last_event[:serialized_event].to_s, last_event[:version], @event_time)
     end
   end
 
   describe '#append' do
     before do
-      @client = EventStore::Client.new('1', :device)
+      @client = EventStore::Client.new(AGGREGATE_ID_ONE, :device)
       @event = @client.peek
       version = @client.version
-      @old_event = EventStore::Event.new('1', (@event_time - 2000).utc, "old", "#{1000.to_s(2)}_foo", version += 1)
-      @new_event = EventStore::Event.new('1', (@event_time - 1000).utc, "new", "#{1001.to_s(2)}_foo", version += 1)
-      @really_new_event = EventStore::Event.new('1', (@event_time + 100).utc, "really_new", "#{1002.to_s(2)}_foo", version += 1)
-      @duplicate_event  = EventStore::Event.new('1', (@event_time).utc, 'duplicate', "#{12.to_s(2)}_foo", version += 1)
+      @old_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time - 2000).utc, "old", "#{1000.to_s(2)}_foo", version += 1)
+      @new_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time - 1000).utc, "new", "#{1001.to_s(2)}_foo", version += 1)
+      @really_new_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time + 100).utc, "really_new", "#{1002.to_s(2)}_foo", version += 1)
+      @duplicate_event  = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time).utc, 'duplicate', "#{12.to_s(2)}_foo", version += 1)
     end
 
     describe "when expected version number is greater than the last version" do
@@ -250,10 +254,10 @@ describe EventStore::Client do
 
     describe 'snapshot' do
       before do
-        @client = es_client.new('10', :device)
+        @client = es_client.new(AGGREGATE_ID_THREE, :device)
         @client.snapshot.length.should == 0
         version = @client.version
-        @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn|EventStore::Event.new('10', Time.now.utc, fqn, 234532.to_s(2), version += 1)}
+        @client.append %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4}.map {|fqn|EventStore::Event.new(AGGREGATE_ID_THREE, Time.now.utc, fqn, 234532.to_s(2), version += 1)}
       end
 
       it "finds the most recent records for each type" do
