@@ -14,7 +14,7 @@ describe EventStore::Client do
     events_by_aggregate_id  = {AGGREGATE_ID_ONE => [], AGGREGATE_ID_TWO => []}
     @event_time = Time.parse("2001-01-01 00:00:00 UTC")
     ([AGGREGATE_ID_ONE]*10 + [AGGREGATE_ID_TWO]*10).shuffle.each_with_index do |aggregate_id, version|
-      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', "#{234532.to_s(2)}_foo}", version)
+      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', serialized_event_data, version)
     end
     client_1.append events_by_aggregate_id[AGGREGATE_ID_ONE]
     client_2.append events_by_aggregate_id[AGGREGATE_ID_TWO]
@@ -286,6 +286,10 @@ describe EventStore::Client do
     def reset_current_version_for(client)
       aggregate = client.instance_variable_get("@aggregate")
       EventStore.redis.hset(aggregate.snapshot_version_table, :current_version, 1000)
+    end
+
+    def serialized_event_data
+      "#{234532.to_s(2)}_foo}"
     end
   end
 end
