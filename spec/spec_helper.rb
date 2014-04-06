@@ -19,7 +19,7 @@ end
 
 require 'event_store'
 
-EventStore.postgres
+EventStore.vertica
 
 RSpec.configure do |config|
   config.after(:each) do

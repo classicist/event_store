@@ -27,8 +27,8 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "pry-debugger"
   spec.add_development_dependency "mock_redis"
 
-  spec.add_dependency "sequel", "~> 3.42"
-  spec.add_dependency 'sequel-vertica', '~> 0.1.0'
+  spec.add_dependency "sequel"
+  spec.add_dependency 'sequel-vertica'
   spec.add_dependency 'pg', '~> 0.17.1'
   spec.add_dependency 'redis', "~> 3.0.7"
   spec.add_dependency 'hiredis'
