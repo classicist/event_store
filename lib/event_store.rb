@@ -1,5 +1,5 @@
 require 'sequel'
-require 'sequel_core'
+require 'sequel/core'
 require 'vertica'
 require 'sequel-vertica'
 require 'redis'
@@ -92,12 +92,12 @@ module EventStore
   end
 
   def self.escape_bytea(binary_string)
-    @adapter == 'vertica' ? binary_string : EventStore.db.literal(binary_string.to_sequel_blob)
+    @adapter == 'vertica' ? binary_string.unpack('H*').join : EventStore.db.literal(binary_string.to_sequel_blob)
   end
 
   def self.unescape_bytea(binary_string)
     if @adapter == 'vertica'
-      binary_string
+      [binary_string].pack("H*")
     else
       unescaped = Sequel::Postgres::Adapter.unescape_bytea(binary_string)
       unescaped[0] == "'" && unescaped[-1] == "'" ? unescaped[1...-1] : unescaped #postgres adds an extra set of quotes when you insert it, Redis does not. Therefore we need to pull off the extra quotes if they are there

@@ -40,6 +40,10 @@ module EventStore
       events.limit(max).where{ version >= version_number.to_i }.all
     end
 
+    def event_stream
+      events.all.map {|e| e[:serialized_event] = EventStore.unescape_bytea(e[:serialized_event]); e}
+    end
+
     def last_event
       snapshot.last
     end
