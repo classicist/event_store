@@ -47,8 +47,8 @@ module EventStore
     @redis ||= Redis.new(config_hash)
   end
 
-  def self.local_redis_connect
-    @redis_connection ||= redis_connect raw_db_config['redis']
+  def self.local_redis_config
+    @redis_connection ||= raw_db_config['redis']
   end
 
   def self.schema
@@ -74,11 +74,10 @@ module EventStore
   end
 
   def self.postgres(environment = 'test')
-    local_redis_connect
-    @adapter        = 'postgres'
     @environment    = environment.to_s
+    @adapter        = 'postgres'
     @db_config      ||= self.db_config
-    create_db
+    custom_config(@db_config, local_redis_config, 'events', environment)
   end
 
   #To find the ip address of vertica on your local box (running in a vm)
@@ -88,12 +87,11 @@ module EventStore
   #4. the inet address for en0 is what you want
   #Hint: if it just hangs, you have have the wrong IP
   def self.vertica(environment = 'test')
-    local_redis_connect
-    @adapter             = 'vertica'
-    @environment         = environment.to_s
-    @db_config         ||= self.db_config
+    @environment    = environment.to_s
+    @adapter        = 'vertica'
+    @db_config      ||= self.db_config
     @db_config['host'] ||= ENV['VERTICA_HOST'] || vertica_host
-    create_db
+    custom_config(@db_config, local_redis_config, 'events', environment)
   end
 
   def self.escape_bytea(binary_string)
@@ -109,13 +107,13 @@ module EventStore
     end
   end
 
-  def self.custom_config(database_config, redis_config, table_name = 'events', envrionment = 'production')
+  def self.custom_config(database_config, redis_config, table_name = 'events', environment = 'production')
     self.redis_connect(redis_config)
     database_config = database_config.inject({}) {|memo, (k,v)| memo[k.to_s] = v; memo}
     redis_config    = redis_config.inject({}) {|memo, (k,v)| memo[k.to_s] = v; memo}
 
-    @adapter        = database_config[:adapter].to_s
-    @environment    = envrionment
+    @adapter        = database_config['adapter'].to_s
+    @environment    = environment
     @db_config      = database_config
     @table_name     = table_name
     create_db
