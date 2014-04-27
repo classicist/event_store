@@ -63,7 +63,12 @@ module EventStore
     @fully_qualified_table ||= Sequel.lit "#{schema}.#{table_name}"
   end
 
+  def self.connected?
+    !!EventStore.db
+  end
+
   def self.clear!
+    return unless connected?
     EventStore.db.from(fully_qualified_table).delete
     EventStore.redis.flushdb
   end
@@ -104,11 +109,15 @@ module EventStore
     end
   end
 
-  def self.custom_config(database_config, redis_config, envrionment = 'production')
+  def self.custom_config(database_config, redis_config, table_name = 'events', envrionment = 'production')
     self.redis_connect(redis_config)
-    @adapter        = database_config['adapter'].to_s
+    database_config = database_config.inject({}) {|memo, (k,v)| memo[k.to_s] = v; memo}
+    redis_config    = redis_config.inject({}) {|memo, (k,v)| memo[k.to_s] = v; memo}
+
+    @adapter        = database_config[:adapter].to_s
     @environment    = envrionment
     @db_config      = database_config
+    @table_name     = table_name
     create_db
   end
 
