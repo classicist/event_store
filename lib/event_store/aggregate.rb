@@ -3,6 +3,14 @@ module EventStore
 
     attr_reader :id, :type, :snapshot_table, :snapshot_version_table, :event_table
 
+    def self.count
+      EventStore.db.from( EventStore.fully_qualified_table).distinct(:aggregate_id).count
+    end
+
+    def self.ids(offset, limit)
+      EventStore.db.from( EventStore.fully_qualified_table).distinct(:aggregate_id).select(:aggregate_id).order(:aggregate_id).limit(limit, offset).all.map{|item| item[:aggregate_id]}
+    end
+
     def initialize(id, type = EventStore.table_name)
       @id = id
       @type = type

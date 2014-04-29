@@ -1,6 +1,14 @@
 module EventStore
   class Client
 
+    def self.count
+      Aggregate.count
+    end
+
+    def self.ids(offset, limit)
+      Aggregate.ids(offset, limit)
+    end
+
     def initialize( aggregate_id, aggregate_type = EventStore.table_name)
       @aggregate = Aggregate.new(aggregate_id, aggregate_type)
     end

@@ -20,6 +20,16 @@ describe EventStore::Client do
     client_2.append events_by_aggregate_id[AGGREGATE_ID_TWO]
   end
 
+  it "counts the number of aggregates or clients" do
+    expect(es_client.count).to eql(2)
+  end
+
+  it "returns a partial list of aggregates" do
+    offset = 0
+    limit = 1
+    es_client.ids(offset, limit).should == [[AGGREGATE_ID_ONE, AGGREGATE_ID_TWO].sort.first]
+  end
+
   describe '#raw_event_stream' do
     it "should be an array of hashes that represent database records, not EventStore::SerializedEvent objects" do
       raw_stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
