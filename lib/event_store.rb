@@ -79,7 +79,7 @@ module EventStore
     @environment    = environment.to_s
     @adapter        = 'postgres'
     @db_config      ||= self.db_config
-    custom_config(@db_config, local_redis_config, 'events', environment)
+    custom_config(@db_config, local_redis_config, @table_name, environment)
   end
 
   #To find the ip address of vertica on your local box (running in a vm)
@@ -95,7 +95,7 @@ module EventStore
     @adapter        = 'vertica'
     @db_config      ||= self.db_config
     @db_config['host'] ||= ENV['VERTICA_HOST'] || vertica_host
-    custom_config(@db_config, local_redis_config, 'events', environment)
+    custom_config(@db_config, local_redis_config, @table_name, environment)
   end
 
   def self.escape_bytea(binary_string)
