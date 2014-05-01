@@ -73,7 +73,9 @@ module EventStore
     EventStore.redis.flushdb
   end
 
-  def self.postgres(environment = 'test')
+  def self.postgres(environment = 'test', table_name = 'events', schema = 'event_store_test')
+    @schema         = schema
+    @table_name     = table_name
     @environment    = environment.to_s
     @adapter        = 'postgres'
     @db_config      ||= self.db_config
@@ -86,7 +88,9 @@ module EventStore
   #3. do /sbin/ifconfig (ifconfig is not in $PATH)
   #4. the inet address for en0 is what you want
   #Hint: if it just hangs, you have have the wrong IP
-  def self.vertica(environment = 'test')
+  def self.vertica(environment = 'test', table_name = 'events', schema = 'event_store_test')
+    @schema         = schema
+    @table_name     = table_name
     @environment    = environment.to_s
     @adapter        = 'vertica'
     @db_config      ||= self.db_config
