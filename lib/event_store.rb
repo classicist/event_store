@@ -120,6 +120,7 @@ module EventStore
     @environment    = environment
     @db_config      = database_config
     @table_name     = table_name
+    @schema          = database_config['schema'].to_s
     create_db
   end
 
