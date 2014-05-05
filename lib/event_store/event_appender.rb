@@ -54,6 +54,7 @@ module EventStore
     end
 
     def prepare_event raw_event
+      raise ArgumentError.new("Cannot Append a Nil Event") unless raw_event
       { :version              => raw_event.version.to_i,
         :aggregate_id         => raw_event.aggregate_id,
         :occurred_at          => Time.parse(raw_event.occurred_at.to_s).utc, #to_s truncates microseconds, which brake Time equality

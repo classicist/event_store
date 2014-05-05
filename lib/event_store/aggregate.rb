@@ -48,6 +48,12 @@ module EventStore
       events.limit(max).where{ version >= version_number.to_i }.all
     end
 
+    def event_stream_between(start_time, end_time, fully_qualified_names = [])
+      query = events.where(occurred_at: start_time..end_time)
+      query = query.where(fully_qualified_name: fully_qualified_names) if fully_qualified_names && fully_qualified_names.any?
+      query.all.map {|e| e[:serialized_event] = EventStore.unescape_bytea(e[:serialized_event]); e}
+    end
+
     def event_stream
       events.all.map {|e| e[:serialized_event] = EventStore.unescape_bytea(e[:serialized_event]); e}
     end

@@ -127,6 +127,83 @@ describe EventStore::Client do
     end
   end
 
+  describe '#event_stream_between' do
+    subject {es_client.new(AGGREGATE_ID_ONE, :device)}
+
+    before do
+      version = subject.version
+      @oldest_event_time = @event_time + 1
+      @middle_event_time = @event_time + 2
+      @newest_event_time = @event_time + 3
+
+      @outside_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time).utc, "middle_event", "#{1002.to_s(2)}_foo", version += 1)
+      @event = EventStore::Event.new(AGGREGATE_ID_ONE, (@oldest_event_time).utc, "oldest_event", "#{1002.to_s(2)}_foo", version += 1)
+      @new_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@middle_event_time).utc, "middle_event", "#{1002.to_s(2)}_foo", version += 1)
+      @newest_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@newest_event_time).utc, "newest_event_type", "#{1002.to_s(2)}_foo", version += 1)
+      subject.append([@event, @new_event, @newest_event])
+    end
+
+    it "returns all events between a start and an end time" do
+      start_time = @oldest_event_time
+      end_time   = @newest_event_time
+      subject.event_stream_between(start_time, end_time).length.should == 3
+    end
+
+    it "returns an empty array if start time is before end time" do
+      start_time = @newest_event_time
+      end_time   = @oldest_event_time
+      subject.event_stream_between(start_time, end_time).length.should == 0
+    end
+
+    it "returns all the events at a given time if the start time is the same as the end time" do
+      start_time = @oldest_event_time
+      end_time   = @oldest_event_time
+      subject.event_stream_between(start_time, end_time).length.should == 1
+    end
+
+    it "returns unencodes the serialized_event fields out of the database encoding" do
+      EventStore.should_receive(:unescape_bytea).once
+      start_time = @oldest_event_time
+      end_time   = @oldest_event_time
+      subject.event_stream_between(start_time, end_time).length.should == 1
+    end
+
+    it "returns the raw events translated into SerializedEvents" do
+      subject.should_receive(:translate_events).once.and_call_original
+      start_time = @oldest_event_time
+      end_time   = @oldest_event_time
+      subject.event_stream_between(start_time, end_time).length.should == 1
+    end
+
+    it "returns types requested within the time range" do
+      start_time = @oldest_event_time
+      end_time   = @newest_event_time
+      fully_qualified_name = 'middle_event'
+      subject.event_stream_between(start_time, end_time, [fully_qualified_name]).length.should == 1
+    end
+
+    it "returns types requested within the time range for more than one type" do
+      start_time = @oldest_event_time
+      end_time   = @newest_event_time
+      fully_qualified_names = ['middle_event', 'newest_event_type']
+      subject.event_stream_between(start_time, end_time, fully_qualified_names).length.should == 2
+    end
+
+    it "returns an empty array if there are no events of the requested types in the time range" do
+      start_time = @oldest_event_time
+      end_time   = @newest_event_time
+      fully_qualified_names = ['random_strings']
+      subject.event_stream_between(start_time, end_time, fully_qualified_names).length.should == 0
+    end
+
+    it "returns only events of types that exist within the time range" do
+      start_time = @oldest_event_time
+      end_time   = @newest_event_time
+      fully_qualified_names = ['middle_event', 'event_name']
+      subject.event_stream_between(start_time, end_time, fully_qualified_names).length.should == 1
+    end
+  end
+
   describe '#peek' do
     let(:client) {es_client.new(AGGREGATE_ID_ONE, :device)}
     subject { client.peek }
@@ -188,6 +265,10 @@ describe EventStore::Client do
           @client.destroy!
           @client.append([@old_event, @new_event, @really_new_event])
           @client.snapshot.should == @client.event_stream
+        end
+
+        it "should raise a meaningful exception when a nil event given to it to append" do
+          expect {@client.append([nil])}.to raise_exception(ArgumentError)
         end
       end
 
