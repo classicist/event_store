@@ -45,7 +45,10 @@ module EventStore
     end
 
     def events_from(version_number, max = nil)
-      events.limit(max).where{ version >= version_number.to_i }.all
+      events.limit(max).where{ version >= version_number.to_i }.all.map do |event|
+        event[:serialized_event] = EventStore.unescape_bytea(event[:serialized_event])
+        event
+      end
     end
 
     def event_stream_between(start_time, end_time, fully_qualified_names = [])

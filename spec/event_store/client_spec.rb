@@ -78,6 +78,25 @@ describe EventStore::Client do
       stream = es_client.new(AGGREGATE_ID_ONE, :device).event_stream
       expect(stream.count).to eq(10)
     end
+
+    context "when the serialized event is terminated prematurely with a null byte" do
+      it "does not truncate the serialized event when there is a binary zero value is at the end" do
+        serialized_event = serialized_event_data_terminated_by_null
+        client = es_client.new("any_device", :device)
+        event = EventStore::Event.new("any_device", @event_time, 'other_event_name', serialized_event, client.version + 1)
+        client.append([event])
+        expect(client.event_stream.last[:serialized_event]).to eql(serialized_event)
+      end
+
+      it "conversion of byte array to and from hex should be lossless" do
+        client = es_client.new("any_device", :device)
+        serialized_event = serialized_event_data_terminated_by_null
+        event = EventStore::Event.new("any_device", @event_time, 'terminated_by_null_event', serialized_event, client.version + 1)
+        client.append([event])
+        hex_from_db = EventStore.db.from(EventStore.fully_qualified_table).where(fully_qualified_name: 'terminated_by_null_event').first[:serialized_event]
+        expect(hex_from_db).to eql(EventStore.escape_bytea(serialized_event))
+      end
+    end
   end
 
 
@@ -379,6 +398,10 @@ describe EventStore::Client do
       EventStore.redis.hset(aggregate.snapshot_version_table, :current_version, 1000)
     end
 
+  end
+  def serialized_event_data_terminated_by_null
+    @term_data ||= File.open(File.expand_path("../binary_string_term_with_null_byte.txt", __FILE__), 'rb') {|f| f.read}
+    @term_data
   end
   def serialized_binary_event_data
     @event_data ||= File.open(File.expand_path("../serialized_binary_event_data.txt", __FILE__), 'rb') {|f| f.read}
