@@ -25,3 +25,4 @@ _yardoc
 doc/
 db/vertica_host_address.txt
 db/nexia_history
+vendor/bundle
