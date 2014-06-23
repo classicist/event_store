@@ -27,7 +27,7 @@ end
 desc "migrate db"
 task :'db:migrate' do
   begin
-    sh 'createdb history_store'
+    sh 'dropdb history_store; createdb history_store'
   rescue => e
     #we don't care if it exists already, so don't fail
   end
