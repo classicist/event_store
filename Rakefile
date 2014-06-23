@@ -23,3 +23,14 @@ desc "Run all tests and generate coverage xml"
 task :'spec:cov' do
   sh "bundle exec rspec #{rspec_out_file} spec"
 end
+
+desc "migrate db"
+task :'db:migrate' do
+  begin
+    sh 'createdb history_store'
+  rescue => e
+    #we don't care if it exists already, so don't fail
+  end
+  sh 'psql history_store < db/setup_db_user.sql'
+end
+
