@@ -10,6 +10,8 @@ require 'event_store/event_appender'
 require 'event_store/aggregate'
 require 'event_store/client'
 require 'event_store/errors'
+require 'yaml'
+
 Sequel.extension :migration
 
 module EventStore

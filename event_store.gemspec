@@ -24,7 +24,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency "simplecov"
   spec.add_development_dependency "simplecov-rcov"
   spec.add_development_dependency "guard-rspec"
-  spec.add_development_dependency "pry-debugger"
+  spec.add_development_dependency "pry-byebug"
   spec.add_development_dependency "mock_redis"
 
   spec.add_dependency "sequel", "~> 4.9.0"
