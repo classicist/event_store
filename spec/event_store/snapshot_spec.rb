@@ -15,9 +15,9 @@ module EventStore
     end
 
     it "should build an empty snapshot for a new client" do
-      new_aggregate.snapshot.should == []
-      new_aggregate.version.should == -1
-      EventStore.redis.hget(new_aggregate.snapshot_version_table, :current_version).should == nil
+      expect(new_aggregate.snapshot).to eq([])
+      expect(new_aggregate.version).to eq(-1)
+      expect(EventStore.redis.hget(new_aggregate.snapshot_version_table, :current_version)).to eq(nil)
     end
 
     it "should rebuild a snapshot after it is deleted" do
@@ -26,12 +26,12 @@ module EventStore
       version  = new_aggregate.version
       new_aggregate.delete_snapshot!
       new_aggregate.rebuild_snapshot!
-      new_aggregate.snapshot.should == snapshot
+      expect(new_aggregate.snapshot).to eq(snapshot)
     end
 
     it "a client should rebuild a snapshot" do
-      Aggregate.any_instance.should_receive(:delete_snapshot!)
-      Aggregate.any_instance.should_receive(:rebuild_snapshot!)
+      expect_any_instance_of(Aggregate).to receive(:delete_snapshot!)
+      expect_any_instance_of(Aggregate).to receive(:rebuild_snapshot!)
       client.rebuild_snapshot!
     end
 
@@ -39,7 +39,7 @@ module EventStore
       appender.append(events)
       snapshot = new_aggregate.snapshot
       new_aggregate.delete_snapshot!
-      new_aggregate.snapshot.should == snapshot
+      expect(new_aggregate.snapshot).to eq(snapshot)
     end
   end
 end
