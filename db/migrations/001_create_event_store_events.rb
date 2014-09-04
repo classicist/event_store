@@ -31,7 +31,8 @@ Sequel.migration do
            FROM #{EventStore.fully_qualified_table}
            ORDER BY aggregate_id,
                     version
-          SEGMENTED BY HASH(aggregate_id) ALL NODES;
+          SEGMENTED BY HASH(aggregate_id) ALL NODES
+          KSAFE 1;
 
           CREATE PROJECTION #{EventStore.fully_qualified_table}_runtime_history_projection /*+createtype(D)*/
           (
@@ -51,7 +52,8 @@ Sequel.migration do
            ORDER BY aggregate_id,
                     occurred_at,
                     fully_qualified_name
-           SEGMENTED BY HASH(aggregate_id) ALL NODES;>
+           SEGMENTED BY HASH(aggregate_id) ALL NODES
+           KSAFE 1;>
   end
 
   down do
