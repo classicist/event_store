@@ -35,8 +35,8 @@ test:
   postgres:
     <<: *postgres
     database: history_store
-    schema: event_store_test
+    schema: event_store_gem_test
   vertica:
     <<: *vertica
     database: history_store
-    schema: event_store_test
+    schema: event_store_gem_test

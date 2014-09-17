@@ -117,12 +117,12 @@ module EventStore
     @environment    = environment
     @db_config      = database_config
     @table_name     = table_name
-    @schema          = database_config['schema'].to_s
+    @schema         = database_config['schema'].to_s
     connect_db
   end
 
   def self.migrations_dir
-     @adapter == 'vertica' ? 'migrations' : 'pg_migrations'
+    @adapter == 'vertica' ? 'migrations' : 'pg_migrations'
   end
 
   def self.connect_db
@@ -131,9 +131,9 @@ module EventStore
 
   def self.create_db
     connect_db
-    schema_exits = @db.table_exists?("#{schema}__schema_info".to_sym)
-    @db.run "CREATE SCHEMA #{EventStore.schema};" unless schema_exits
-    Sequel::Migrator.run(@db, File.expand_path(File.join('..','..','db', self.migrations_dir), __FILE__), :table=> "#{schema}__schema_info".to_sym)
+    table = "#{schema}__schema_info".to_sym
+    @db.run "CREATE SCHEMA #{EventStore.schema};" unless @db.table_exists?(table)
+    Sequel::Migrator.run(@db, File.expand_path(File.join('..','..','db', self.migrations_dir), __FILE__), table: table)
   end
 
   def self.vertica_host
