@@ -28,7 +28,7 @@ Gem::Specification.new do |spec|
   spec.add_development_dependency 'mock_redis', '~> 0.13'
 
   spec.add_dependency 'sequel', '~> 4.14'
-  spec.add_dependency 'nexia-sequel-vertica', '~> 0.2'
+  spec.add_dependency 'sequel-vertica', '~> 0.2'
   spec.add_dependency 'pg', '~> 0.17'
   spec.add_dependency 'redis', '~> 3.1'
   spec.add_dependency 'hiredis', '~> 0.5'
