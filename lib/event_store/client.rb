@@ -9,7 +9,7 @@ module EventStore
       Aggregate.ids(offset, limit)
     end
 
-    def initialize( aggregate_id, aggregate_type = EventStore.table_name)
+    def initialize(aggregate_id, aggregate_type = EventStore.table_name)
       @aggregate = Aggregate.new(aggregate_id, aggregate_type)
     end
 
@@ -25,7 +25,7 @@ module EventStore
       @aggregate.event_table
     end
 
-    def append event_data
+    def append(event_data)
       event_appender.append(event_data)
       yield(event_data) if block_given?
       nil
@@ -36,19 +36,19 @@ module EventStore
     end
 
     def event_stream
-      translate_events raw_event_stream
+      translate_events(raw_event_stream)
     end
 
-    def event_stream_from version_number, max=nil
-      translate_events @aggregate.events_from(version_number, max)
+    def event_stream_from(version_number, max=nil)
+      translate_events(@aggregate.events_from(version_number, max))
     end
 
     def event_stream_between(start_time, end_time, fully_qualified_names = [])
-      translate_events @aggregate.event_stream_between(start_time, end_time, fully_qualified_names)
+      translate_events(@aggregate.event_stream_between(start_time, end_time, fully_qualified_names))
     end
 
     def peek
-      translate_event @aggregate.last_event
+      translate_event(@aggregate.last_event)
     end
 
     def raw_snapshot
