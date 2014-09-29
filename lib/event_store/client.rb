@@ -26,7 +26,7 @@ module EventStore
     end
 
     def append(event_data)
-      event_appender.append(event_data)
+      @aggregate.append(event_data)
       yield(event_data) if block_given?
       nil
     end
@@ -82,10 +82,6 @@ module EventStore
     end
 
     private
-
-    def event_appender
-      EventAppender.new(@aggregate)
-    end
 
     def translate_events(event_hashs)
       event_hashs.map { |eh| translate_event(eh) }

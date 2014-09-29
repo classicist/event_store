@@ -70,7 +70,7 @@ module EventStore
     end
 
     def current_version
-      @current_version ||= @aggregate.version
+      @aggregate.version
     end
     alias :set_current_version :current_version
 

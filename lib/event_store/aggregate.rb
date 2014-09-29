@@ -20,6 +20,10 @@ module EventStore
       @snapshot_version_table = "#{@type}_snapshot_versions_for_#{@id}"
     end
 
+    def append(events)
+      event_appender.append(events)
+    end
+
     def events
       @events_query ||= EventStore.db.from(@event_table).where(:aggregate_id => @id.to_s).order(:version)
     end
@@ -70,7 +74,7 @@ module EventStore
     def rebuild_snapshot!
       delete_snapshot!
       corrected_events = events.all.map{|e| e[:occurred_at] = TimeHacker.translate_occurred_at_from_local_to_gmt(e[:occurred_at]); e}
-      EventAppender.new(self).store_snapshot(corrected_events)
+      event_appender.store_snapshot(corrected_events)
     end
 
     def delete_snapshot!
@@ -78,10 +82,17 @@ module EventStore
     end
 
   private
+    def event_appender
+      @appender ||= EventAppender.new(self)
+    end
+
     def auto_rebuild_snapshot(events_hash)
-      return events_hash unless events_hash.empty?
+      return events_hash unless events_hash.empty? #got it? return it
+
       event = events.select(:version).limit(1).all
-      return events_hash if event.nil?
+      return events_hash if event.nil? #return nil if no events in the ES
+
+      # so there are events in the ES but there is no redis snapshot
       rebuild_snapshot!
       events_hash = read_raw_snapshot
     end
