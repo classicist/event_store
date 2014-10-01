@@ -61,7 +61,7 @@ module EventStore
     end
 
     def events_for(device_id)
-      events = %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4 }.map {|fqn| event_hash(device_id, fqn, EventStore::NO_ZONE) }
+      events = %w{ e1 e2 e3 e1 e2 e4 e5 e2 e5 e4 }.map {|fqn| event_hash(device_id, fqn, EventStore::NO_SUB_KEY) }
       events += %w{ e7 e7 e8 }.map {|fqn| event_hash(device_id, fqn, "zone1") }
       events += %w{ e7 e7 }.map {|fqn| event_hash(device_id, fqn, "zone2") }
     end

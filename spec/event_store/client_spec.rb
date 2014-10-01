@@ -17,7 +17,7 @@ describe EventStore::Client do
     ([AGGREGATE_ID_ONE]*5 + [AGGREGATE_ID_TWO]*5).shuffle.each_with_index do |aggregate_id, version|
       events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "zone_1_event", "1", serialized_binary_event_data)
       events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "zone_2_event", "2", serialized_binary_event_data)
-      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "system_event", EventStore::NO_ZONE, serialized_binary_event_data)
+      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "system_event", EventStore::NO_SUB_KEY, serialized_binary_event_data)
     end
     client_1.append events_by_aggregate_id[AGGREGATE_ID_ONE]
     client_2.append events_by_aggregate_id[AGGREGATE_ID_TWO]
