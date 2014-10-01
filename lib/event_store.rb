@@ -16,9 +16,11 @@ require 'yaml'
 Sequel.extension :migration
 
 module EventStore
-  Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :serialized_event, :version)
+  Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :zone_number, :serialized_event)
   SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event, :version, :occurred_at)
-  SNAPSHOT_DELIMITER = "__NexEvStDelim__"
+  SNAPSHOT_DELIMITER     = "__NexEvStDelim__"
+  SNAPSHOT_KEY_DELIMITER = ":"
+  NO_ZONE                = "NO_ZONE"
 
   def self.db_config
     raw_db_config[@environment.to_s][@adapter.to_s]

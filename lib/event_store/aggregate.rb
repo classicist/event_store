@@ -4,10 +4,23 @@ module EventStore
   class Aggregate
     extend Forwardable
 
-    attr_reader :id, :type
+    attr_reader :id, :type, :event_table
 
-    def_delegators :@snapshot, :last_event, :snapshot, :rebuild_snapshot, :delete_snapshot, :version
-    def_delegators :@event_stream, :events, :events_from, :event_stream, :event_stream_between, :delete_events
+    def_delegators :@snapshot,
+      :last_event,
+      :snapshot,
+      :rebuild_snapshot!,
+      :delete_snapshot!,
+      :version,
+      :snapshot_version_table
+
+    def_delegators :@event_stream,
+      :events,
+      :events_from,
+      :event_stream,
+      :event_stream_between,
+      :event_table,
+      :delete_events!
 
     def self.count
       EventStore.db.from( EventStore.fully_qualified_table).distinct(:aggregate_id).count

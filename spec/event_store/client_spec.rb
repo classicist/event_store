@@ -14,8 +14,10 @@ describe EventStore::Client do
 
     events_by_aggregate_id  = {AGGREGATE_ID_ONE => [], AGGREGATE_ID_TWO => []}
     @event_time = Time.parse("2001-01-01 00:00:00 UTC")
-    ([AGGREGATE_ID_ONE]*10 + [AGGREGATE_ID_TWO]*10).shuffle.each_with_index do |aggregate_id, version|
-      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, 'event_name', serialized_binary_event_data, version)
+    ([AGGREGATE_ID_ONE]*5 + [AGGREGATE_ID_TWO]*5).shuffle.each_with_index do |aggregate_id, version|
+      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "zone_1_event", "1", serialized_binary_event_data)
+      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "zone_2_event", "2", serialized_binary_event_data)
+      events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "system_event", EventStore::NO_ZONE, serialized_binary_event_data)
     end
     client_1.append events_by_aggregate_id[AGGREGATE_ID_ONE]
     client_2.append events_by_aggregate_id[AGGREGATE_ID_TWO]
@@ -37,7 +39,7 @@ describe EventStore::Client do
       expect(raw_stream.class).to eq(Array)
       raw_event = raw_stream.first
       expect(raw_event.class).to eq(Hash)
-      expect(raw_event.keys).to eq([:id, :version, :aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event])
+      expect(raw_event.keys).to eq([:id, :version, :aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event, :sub_key])
     end
 
     it 'should be empty for aggregates without events' do
@@ -52,7 +54,7 @@ describe EventStore::Client do
 
     it 'should have all events for that aggregate' do
       stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
-      expect(stream.count).to eq(10)
+      expect(stream.count).to eq(15)
     end
   end
 
@@ -77,14 +79,14 @@ describe EventStore::Client do
 
     it 'should have all events for that aggregate' do
       stream = es_client.new(AGGREGATE_ID_ONE, :device).event_stream
-      expect(stream.count).to eq(10)
+      expect(stream.count).to eq(15)
     end
 
     context "when the serialized event is terminated prematurely with a null byte" do
       it "does not truncate the serialized event when there is a binary zero value is at the end" do
         serialized_event = serialized_event_data_terminated_by_null
         client = es_client.new("any_device", :device)
-        event = EventStore::Event.new("any_device", @event_time, 'other_event_name', serialized_event, client.version + 1)
+        event = EventStore::Event.new("any_device", @event_time, 'other_event_name', "nozone", serialized_event)
         client.append([event])
         expect(client.event_stream.last[:serialized_event]).to eql(serialized_event)
       end
@@ -92,7 +94,7 @@ describe EventStore::Client do
       it "conversion of byte array to and from hex should be lossless" do
         client = es_client.new("any_device", :device)
         serialized_event = serialized_event_data_terminated_by_null
-        event = EventStore::Event.new("any_device", @event_time, 'terminated_by_null_event', serialized_event, client.version + 1)
+        event = EventStore::Event.new("any_device", @event_time, 'terminated_by_null_event', "zone_number", serialized_event)
         client.append([event])
         hex_from_db = EventStore.db.from(EventStore.fully_qualified_table).where(fully_qualified_name: 'terminated_by_null_event').first[:serialized_event]
         expect(hex_from_db).to eql(EventStore.escape_bytea(serialized_event))
@@ -151,15 +153,14 @@ describe EventStore::Client do
     subject {es_client.new(AGGREGATE_ID_ONE, :device)}
 
     before do
-      version = subject.version
       @oldest_event_time = @event_time + 1
       @middle_event_time = @event_time + 2
       @newest_event_time = @event_time + 3
 
-      @outside_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time).utc, "middle_event", "#{1002.to_s(2)}_foo", version += 1)
-      @event = EventStore::Event.new(AGGREGATE_ID_ONE, (@oldest_event_time).utc, "oldest_event", "#{1002.to_s(2)}_foo", version += 1)
-      @new_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@middle_event_time).utc, "middle_event", "#{1002.to_s(2)}_foo", version += 1)
-      @newest_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@newest_event_time).utc, "newest_event_type", "#{1002.to_s(2)}_foo", version += 1)
+      @outside_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time).utc, "middle_event", "zone", "#{1002.to_s(2)}_foo")
+      @event = EventStore::Event.new(AGGREGATE_ID_ONE, (@oldest_event_time).utc, "oldest_event", "zone", "#{1002.to_s(2)}_foo")
+      @new_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@middle_event_time).utc, "middle_event", "zone", "#{1002.to_s(2)}_foo")
+      @newest_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@newest_event_time).utc, "newest_event_type", "zone", "#{1002.to_s(2)}_foo")
       subject.append([@event, @new_event, @newest_event])
     end
 
@@ -238,11 +239,10 @@ describe EventStore::Client do
     before do
       @client = EventStore::Client.new(AGGREGATE_ID_ONE, :device)
       @event = @client.peek
-      version = @client.version
-      @old_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time - 2000).utc, "old", "#{1000.to_s(2)}_foo", version += 1)
-      @new_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time - 1000).utc, "new", "#{1001.to_s(2)}_foo", version += 1)
-      @really_new_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time + 100).utc, "really_new", "#{1002.to_s(2)}_foo", version += 1)
-      @duplicate_event  = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time).utc, 'duplicate', "#{12.to_s(2)}_foo", version += 1)
+      @old_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time - 2000).utc, "old", "zone", "#{1000.to_s(2)}_foo")
+      @new_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time - 1000).utc, "new", "zone", "#{1001.to_s(2)}_foo")
+      @really_new_event = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time + 100).utc, "really_new", "zone", "#{1002.to_s(2)}_foo")
+      @duplicate_event  = EventStore::Event.new(AGGREGATE_ID_ONE, (@event_time).utc, 'duplicate', "zone", "#{12.to_s(2)}_foo")
     end
 
     describe "when expected version number is greater than the last version" do
@@ -301,7 +301,6 @@ describe EventStore::Client do
 
         it 'should not raise an error when two events of the same type are appended' do
           @client.append([@duplicate_event])
-          @duplicate_event[:version] += 1
           @client.append([@duplicate_event]) #will fail automatically if it throws an error, no need for assertions (which now print warning for some reason)
         end
 
@@ -365,47 +364,6 @@ describe EventStore::Client do
         @client.append([@new_event]) do |raw_event_data|
           expect(raw_event_data).to eq([@new_event])
         end
-      end
-    end
-
-    describe "Snapshots" do
-      let(:aggregate_id)  {'100A' }
-      let(:new_aggregate) { EventStore::Aggregate.new(aggregate_id) }
-      let(:client)        { es_client.new(aggregate_id) }
-      let(:events)        { [] }
-
-      before do
-        @event_time = Time.parse("2001-01-01 00:00:00 UTC")
-        (0...10).to_a.each_with_index do |version|
-          events << EventStore::Event.new(aggregate_id, @event_time, 'event_name', "#{234532.to_s(2)}_foo}", version)
-        end
-      end
-
-      it "should build an empty snapshot for a new client" do
-        expect(new_aggregate.snapshot).to eq([])
-        expect(new_aggregate.version).to eq(-1)
-        expect(EventStore.redis.hget(new_aggregate.snapshot_version_table, :current_version)).to eq(nil)
-      end
-
-      it "should rebuild a snapshot after it is deleted" do
-        client.append(events)
-        snapshot = new_aggregate.snapshot
-        new_aggregate.delete_snapshot!
-        new_aggregate.rebuild_snapshot!
-        expect(new_aggregate.snapshot).to eq(snapshot)
-      end
-
-      it "a client should rebuild a snapshot" do
-        expect_any_instance_of(EventStore::Aggregate).to receive(:delete_snapshot!)
-        expect_any_instance_of(EventStore::Aggregate).to receive(:rebuild_snapshot!)
-        client.rebuild_snapshot!
-      end
-
-      it "should rebuild the snapshot if events exist, but the snapshot is empty" do
-        client.append(events)
-        snapshot = new_aggregate.snapshot
-        new_aggregate.delete_snapshot!
-        expect(new_aggregate.snapshot).to eq(snapshot)
       end
     end
 

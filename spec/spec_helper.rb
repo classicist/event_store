@@ -1,6 +1,8 @@
 require 'simplecov'
 require 'simplecov-rcov'
+require 'ostruct'
 require 'pry'
+require 'pry-byebug'
 require 'rspec'
 
 class SimpleCov::Formatter::MergedFormatter

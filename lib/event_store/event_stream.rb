@@ -1,8 +1,12 @@
 module EventStore
   class EventStream
 
+    attr_reader :event_table
+
     def initialize aggregate
       @aggregate = aggregate
+      @id = @aggregate.id
+      @event_table = EventStore.fully_qualified_table
     end
 
     def append(raw_events)
@@ -55,7 +59,9 @@ module EventStore
         :aggregate_id         => raw_event.aggregate_id,
         :occurred_at          => Time.parse(raw_event.occurred_at.to_s).utc, #to_s truncates microseconds, which brake Time equality
         :serialized_event     => EventStore.escape_bytea(raw_event.serialized_event),
-        :fully_qualified_name => raw_event.fully_qualified_name }
+        :fully_qualified_name => raw_event.fully_qualified_name,
+        :sub_key              => raw_event.zone_number
+      }
     end
 
     def ensure_all_attributes_have_values!(event_hash)
