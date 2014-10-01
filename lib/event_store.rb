@@ -6,7 +6,8 @@ require 'redis'
 require 'hiredis'
 require 'event_store/version'
 require 'event_store/time_hacker'
-require 'event_store/event_appender'
+require 'event_store/event_stream'
+require 'event_store/snapshot'
 require 'event_store/aggregate'
 require 'event_store/client'
 require 'event_store/errors'
@@ -15,9 +16,11 @@ require 'yaml'
 Sequel.extension :migration
 
 module EventStore
-  Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :serialized_event, :version)
+  Event = Struct.new(:aggregate_id, :occurred_at, :fully_qualified_name, :sub_key, :serialized_event)
   SerializedEvent = Struct.new(:fully_qualified_name, :serialized_event, :version, :occurred_at)
-  SNAPSHOT_DELIMITER = "__NexEvStDelim__"
+  SNAPSHOT_DELIMITER     = "__NexEvStDelim__"
+  SNAPSHOT_KEY_DELIMITER = ":"
+  NO_SUB_KEY              = "NO_SUB_KEY"
 
   def self.db_config
     raw_db_config[@environment.to_s][@adapter.to_s]
