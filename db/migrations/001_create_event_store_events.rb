@@ -7,6 +7,7 @@ Sequel.migration do
           version BIGINT NOT NULL,
           aggregate_id varchar(36) NOT NULL,
           fully_qualified_name varchar(512) NOT NULL,
+          sub_key varchar(512) NOT NULL,
           occurred_at TIMESTAMPTZ NOT NULL,
           serialized_event VARBINARY(32768) NOT NULL)
 
@@ -18,6 +19,7 @@ Sequel.migration do
            version ENCODING COMMONDELTA_COMP,
            aggregate_id ENCODING RLE,
            fully_qualified_name ENCODING AUTO,
+           sub_key ENCODING AUTO,
            occurred_at ENCODING BLOCKDICT_COMP,
            serialized_event ENCODING AUTO
           )
@@ -26,6 +28,7 @@ Sequel.migration do
                   version,
                   aggregate_id,
                   fully_qualified_name,
+                  sub_key,
                   occurred_at,
                   serialized_event
            FROM #{EventStore.fully_qualified_table}
@@ -39,6 +42,7 @@ Sequel.migration do
            version ENCODING DELTAVAL,
            aggregate_id ENCODING RLE,
            fully_qualified_name ENCODING RLE,
+           sub_key ENCODING RLE,
            occurred_at ENCODING RLE,
            serialized_event ENCODING AUTO
           )
@@ -46,12 +50,14 @@ Sequel.migration do
            SELECT version,
                   aggregate_id,
                   fully_qualified_name,
+                  sub_key,
                   occurred_at,
                   serialized_event
            FROM #{EventStore.fully_qualified_table}
            ORDER BY aggregate_id,
                     occurred_at,
-                    fully_qualified_name
+                    fully_qualified_name,
+                    sub_key
            SEGMENTED BY HASH(aggregate_id) ALL NODES
            KSAFE 1;>
   end
