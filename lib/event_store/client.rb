@@ -51,7 +51,7 @@ module EventStore
     end
 
     def peek
-      translate_event(@aggregate.last_event)
+      @aggregate.last_event
     end
 
     def raw_snapshot
@@ -91,7 +91,7 @@ module EventStore
     end
 
     def translate_event(event_hash)
-      return unless event_hash.respond_to?(:occurred_at)
+      return if event_hash.empty?
       occurred_at = TimeHacker.translate_occurred_at_from_local_to_gmt(event_hash[:occurred_at])
       SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version], occurred_at
     end
