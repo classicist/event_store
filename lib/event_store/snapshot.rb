@@ -66,7 +66,7 @@ module EventStore
   private
 
     def snapshot_key(event)
-      [event[:fully_qualified_name], event[:sub_key] || EventStore::NO_ZONE].join(EventStore::SNAPSHOT_KEY_DELIMITER)
+      [event[:fully_qualified_name], event[:sub_key] || EventStore::NO_SUB_KEY].join(EventStore::SNAPSHOT_KEY_DELIMITER)
     end
 
     def snapshot_event(event)
