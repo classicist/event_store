@@ -12,6 +12,7 @@ module EventStore
       :rebuild_snapshot!,
       :delete_snapshot!,
       :version,
+      :version_for,
       :snapshot_version_table
 
     def_delegators :@event_stream,

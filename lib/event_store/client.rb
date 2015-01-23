@@ -2,7 +2,7 @@ module EventStore
   class Client
     extend Forwardable
 
-    def_delegators :aggregate, :delete_snapshot!, :snapshot_version_table
+    def_delegators :aggregate, :delete_snapshot!, :snapshot_version_table, :version_for
 
     def self.count
       Aggregate.count

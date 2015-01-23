@@ -50,6 +50,15 @@ module EventStore
         end
       end
 
+      describe "#version_for" do
+        let(:subkey) { first_event[:sub_key] }
+        let(:fqn)    { first_event[:fully_qualified_name] }
+
+        it "returns the version number for the last event of specific fqn" do
+          expect(snapshot.version_for(fqn, subkey)).to eq(first_event[:version])
+        end
+      end
+
       describe "#rebuild_snapshot!" do
         it "deletes the existing snapshot" do
           expect(redis).to receive(:del).with([snapshot.snapshot_table , snapshot.snapshot_version_table])

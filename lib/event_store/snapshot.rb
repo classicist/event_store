@@ -18,8 +18,12 @@ module EventStore
       snapshot.last
     end
 
-    def version
-      (@redis.hget(snapshot_version_table, :current_version) || -1).to_i
+    def version(snapshot_key =:current_version)
+      (@redis.hget(snapshot_version_table, snapshot_key) || -1).to_i
+    end
+
+    def version_for(fully_qualified_name, sub_key = nil)
+      version(snapshot_key(fully_qualified_name: fully_qualified_name, sub_key: sub_key))
     end
 
     def size
