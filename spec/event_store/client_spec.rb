@@ -6,7 +6,7 @@ AGGREGATE_ID_TWO   = SecureRandom.uuid
 AGGREGATE_ID_THREE = SecureRandom.uuid
 
 describe EventStore::Client do
-  let(:es_client) { EventStore::Client }
+  subject(:es_client) { EventStore::Client }
 
   before do
     client_1 = es_client.new(AGGREGATE_ID_ONE, :device)
@@ -31,6 +31,19 @@ describe EventStore::Client do
     offset = 0
     limit = 1
     expect(es_client.ids(offset, limit)).to eq([[AGGREGATE_ID_ONE, AGGREGATE_ID_TWO].sort.first])
+  end
+
+  describe "#exists?" do
+    let(:fake_aggregate) { double("Aggregate") }
+
+    subject(:client) { es_client.new(AGGREGATE_ID_ONE, :device) }
+
+    before(:each) { expect(client).to receive(:aggregate).and_return(fake_aggregate) }
+
+    it "checks if the snapshot exists" do
+      expect(fake_aggregate).to receive(:snapshot_exists?).and_return(true)
+      expect(client.exists?).to eq(true)
+    end
   end
 
   describe '#raw_event_stream' do
@@ -373,10 +386,12 @@ describe EventStore::Client do
     end
 
   end
+
   def serialized_event_data_terminated_by_null
     @term_data ||= File.open(File.expand_path("../binary_string_term_with_null_byte.txt", __FILE__), 'rb') {|f| f.read}
     @term_data
   end
+
   def serialized_binary_event_data
     @event_data ||= File.open(File.expand_path("../serialized_binary_event_data.txt", __FILE__), 'rb') {|f| f.read}
     @event_data

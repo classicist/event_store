@@ -22,6 +22,10 @@ module EventStore
       :event_table,
       :delete_events!
 
+    def snapshot_exists?
+      @snapshot.exists?
+    end
+
     def self.count
       EventStore.db.from( EventStore.fully_qualified_table).distinct(:aggregate_id).count
     end

@@ -2,7 +2,7 @@ module EventStore
   class Client
     extend Forwardable
 
-    def_delegators :@aggregate, :delete_snapshot!, :snapshot_version_table
+    def_delegators :aggregate, :delete_snapshot!, :snapshot_version_table
 
     def self.count
       Aggregate.count
@@ -16,20 +16,24 @@ module EventStore
       @aggregate = Aggregate.new(aggregate_id, aggregate_type)
     end
 
+    def exists?
+      aggregate.snapshot_exists?
+    end
+
     def id
-      @aggregate.id
+      aggregate.id
     end
 
     def type
-      @aggregate.type
+      aggregate.type
     end
 
     def event_table
-      @aggregate.event_table
+      aggregate.event_table
     end
 
     def append(event_data)
-      @aggregate.append(event_data)
+      aggregate.append(event_data)
       yield(event_data) if block_given?
       nil
     end
@@ -43,31 +47,31 @@ module EventStore
     end
 
     def event_stream_from(version_number, max=nil)
-      translate_events(@aggregate.events_from(version_number, max))
+      translate_events(aggregate.events_from(version_number, max))
     end
 
     def event_stream_between(start_time, end_time, fully_qualified_names = [])
-      translate_events(@aggregate.event_stream_between(start_time, end_time, fully_qualified_names))
+      translate_events(aggregate.event_stream_between(start_time, end_time, fully_qualified_names))
     end
 
     def peek
-      @aggregate.last_event
+      aggregate.last_event
     end
 
     def raw_snapshot
-      @aggregate.snapshot
+      aggregate.snapshot
     end
 
     def raw_event_stream
-      @aggregate.event_stream
+      aggregate.event_stream
     end
 
     def raw_event_stream_from version_number, max=nil
-      @aggregate.events_from(version_number, max)
+      aggregate.events_from(version_number, max)
     end
 
     def version
-      @aggregate.version
+      aggregate.version
     end
 
     def count
@@ -75,16 +79,18 @@ module EventStore
     end
 
     def destroy!
-      @aggregate.delete_events!
-      @aggregate.delete_snapshot!
+      aggregate.delete_events!
+      aggregate.delete_snapshot!
     end
 
     def rebuild_snapshot!
-      @aggregate.delete_snapshot!
-      @aggregate.rebuild_snapshot!
+      aggregate.delete_snapshot!
+      aggregate.rebuild_snapshot!
     end
 
     private
+
+    attr_reader :aggregate
 
     def translate_events(event_hashs)
       event_hashs.map { |eh| translate_event(eh) }

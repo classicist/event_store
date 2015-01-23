@@ -1,7 +1,7 @@
 module EventStore
   class Snapshot
 
-    attr_reader :snapshot_version_table
+    attr_reader :snapshot_version_table, :snapshot_table
 
     def initialize aggregate
       @aggregate = aggregate
@@ -10,12 +10,20 @@ module EventStore
       @snapshot_version_table = "#{@aggregate.type}_snapshot_versions_for_#{@aggregate.id}"
     end
 
+    def exists?
+      @redis.exists(snapshot_table)
+    end
+
     def last_event
       snapshot.last
     end
 
     def version
-      (@redis.hget(@snapshot_version_table, :current_version) || -1).to_i
+      (@redis.hget(snapshot_version_table, :current_version) || -1).to_i
+    end
+
+    def size
+      snapshot.size
     end
 
     def snapshot
@@ -39,7 +47,7 @@ module EventStore
     end
 
     def delete_snapshot!
-      EventStore.redis.del [@snapshot_table, @snapshot_version_table]
+      EventStore.redis.del [snapshot_table, snapshot_version_table]
     end
 
     def store_snapshot(prepared_events)
@@ -57,8 +65,8 @@ module EventStore
         valid_snapshot_versions += [:current_version, valid_snapshot_versions.last.to_i]
 
         @redis.multi do
-          @redis.hmset(@snapshot_version_table, valid_snapshot_versions)
-          @redis.hmset(@snapshot_table, valid_snapshot_events)
+          @redis.hmset(snapshot_version_table, valid_snapshot_versions)
+          @redis.hmset(snapshot_table, valid_snapshot_events)
         end
       end
     end
@@ -87,13 +95,13 @@ module EventStore
     end
 
     def current_version_numbers
-      current_versions = @redis.hgetall(@snapshot_version_table)
+      current_versions = @redis.hgetall(snapshot_version_table)
       current_versions.default = -1
       current_versions
     end
 
     def read_raw_snapshot
-      @redis.hgetall(@snapshot_table)
+      @redis.hgetall(snapshot_table)
     end
 
     def auto_rebuild_snapshot(events_hash)
