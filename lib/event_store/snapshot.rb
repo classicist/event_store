@@ -1,5 +1,6 @@
 module EventStore
   class Snapshot
+    include Enumerable
 
     attr_reader :snapshot_version_table, :snapshot_table
 
@@ -15,7 +16,7 @@ module EventStore
     end
 
     def last_event
-      snapshot.last
+      to_a.last
     end
 
     def version(snapshot_key =:current_version)
@@ -26,22 +27,16 @@ module EventStore
       version(snapshot_key(fully_qualified_name: fully_qualified_name, sub_key: sub_key))
     end
 
-    def size
-      snapshot.size
-    end
-
-    def snapshot
+    def each
       events_hash = auto_rebuild_snapshot(read_raw_snapshot)
-      snap = []
-      events_hash.each_pair do |key, value|
+      events_hash.inject([]) do |snapshot, (key, value)|
         fully_qualified_name, _ = key.split(EventStore::SNAPSHOT_KEY_DELIMITER)
         raw_event               = value.split(EventStore::SNAPSHOT_DELIMITER)
         version                 = raw_event.first.to_i
         serialized_event        = EventStore.unescape_bytea(raw_event[1])
         occurred_at             = Time.parse(raw_event.last)
-        snap << SerializedEvent.new(fully_qualified_name, serialized_event, version, occurred_at)
-      end
-      snap.sort {|a,b| a.version <=> b.version}
+        snapshot + [SerializedEvent.new(fully_qualified_name, serialized_event, version, occurred_at)]
+      end.sort_by(&:version).each { |e| yield e }
     end
 
     def rebuild_snapshot!

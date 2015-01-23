@@ -1,5 +1,6 @@
 module EventStore
   class EventStream
+    include Enumerable
 
     attr_reader :event_table
 
@@ -43,8 +44,19 @@ module EventStore
       query.all.map {|e| e[:serialized_event] = EventStore.unescape_bytea(e[:serialized_event]); e}
     end
 
-    def event_stream
-      events.all.map {|e| e[:serialized_event] = EventStore.unescape_bytea(e[:serialized_event]); e}
+    def last
+      to_a.last
+    end
+
+    def empty?
+      events.empty?
+    end
+
+    def each
+      events.all.each do |e|
+        e[:serialized_event] = EventStore.unescape_bytea(e[:serialized_event])
+        yield e
+      end
     end
 
     def delete_events!
