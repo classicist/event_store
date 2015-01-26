@@ -67,35 +67,34 @@ module EventStore
 
         it "stores a a new snapshot from the aggregate's events" do
           snapshot.rebuild_snapshot!
-          expect(snapshot.size).to eq(2)
+          expect(snapshot.count).to eq(2)
           # TODO: remove #snapshot in favor of Enumerable
-          names = snapshot.snapshot.map(&:fully_qualified_name)
+          names = snapshot.map(&:fully_qualified_name)
           expect(names).to eq(events.map { |e| e[:fully_qualified_name] })
         end
       end
 
       # TODO: remove this in favor of #each and include Enumerable
-      describe "#snapshot" do
-        let(:event_snapshot)   { snapshot.snapshot }
+      describe "events" do
         let(:serialized_attrs) { [ :fully_qualified_name,
                                    :serialized_event,
                                    :version,
                                    :occurred_at ] }
 
         it "contains SerializedEvents" do
-          event_snapshot.each { |e| expect(e).to be_a(SerializedEvent) }
+          snapshot.each { |e| expect(e).to be_a(SerializedEvent) }
         end
 
         it "corresponds to the events used to build the snapshot" do
           (serialized_attrs - [ :serialized_event ]).each { |attr|
-            expect(event_snapshot.first.send(attr)).to eq(first_event[attr])
-            expect(event_snapshot.last.send(attr)).to eq(last_event[attr])
+            expect(snapshot.first.send(attr)).to eq(first_event[attr])
+            expect(snapshot.last_event.send(attr)).to eq(last_event[attr])
           }
         end
 
         it "unescapes the serialized events" do
-          expected_event = EventStore.unescape_bytea(last_event[:serialized_event])
-          expect(event_snapshot.last.serialized_event).to eq(expected_event)
+          expected_event = EventStore.unescape_bytea(first_event[:serialized_event])
+          expect(snapshot.first.serialized_event).to eq(expected_event)
         end
       end
 
