@@ -6,12 +6,11 @@ AGGREGATE_ID_TWO = SecureRandom.uuid
 
 module EventStore
   describe "Snapshots" do
-
     context "when there are no events" do
       let(:client)    { EventStore::Client.new(AGGREGATE_ID_ONE) }
 
       it "should build an empty snapshot for a new client" do
-        expect(client.snapshot).to eq([])
+        expect(client.snapshot.any?).to eq(false)
         expect(client.version).to eq(-1)
         expect(EventStore.redis.hget(client.snapshot_version_table, :current_version)).to eq(nil)
       end
@@ -27,7 +26,7 @@ module EventStore
       let(:client)    { EventStore::Client.new(AGGREGATE_ID_TWO) }
 
       before do
-        expect(client.snapshot.length).to eq(0)
+        expect(client.snapshot.count).to eq(0)
         client.append events_for(AGGREGATE_ID_TWO)
       end
 
@@ -49,14 +48,14 @@ module EventStore
         expected_snapshot = serialized_events(expected_snapshot_events)
         actual_snapshot = client.snapshot
 
-        expect(client.event_stream.length).to eq(15)
+        expect(client.event_stream.count).to eq(15)
         expect(actual_snapshot.map(&:fully_qualified_name)).to eq(expected_snapshot_events)
-        expect(actual_snapshot.length).to eq(8)
+        expect(actual_snapshot.count).to eq(8)
         expect(actual_snapshot.map(&:serialized_event)).to eq(expected_snapshot.map(&:serialized_event))
       end
 
       it "increments the version number of the snapshot when an event is appended" do
-        expect(client.snapshot.last.version).to eq(client.raw_event_stream.last[:version])
+        expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
       end
     end
 

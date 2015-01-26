@@ -4,21 +4,19 @@ module EventStore
   class Aggregate
     extend Forwardable
 
-    attr_reader :id, :type, :event_table
+    attr_reader :id, :type, :event_table, :snapshot, :event_stream
 
-    def_delegators :@snapshot,
+    def_delegators :snapshot,
       :last_event,
-      :snapshot,
       :rebuild_snapshot!,
       :delete_snapshot!,
       :version,
       :version_for,
       :snapshot_version_table
 
-    def_delegators :@event_stream,
+    def_delegators :event_stream,
       :events,
       :events_from,
-      :event_stream,
       :event_stream_between,
       :event_table,
       :delete_events!
@@ -44,8 +42,8 @@ module EventStore
     end
 
     def append(events)
-      @event_stream.append(events) do |prepared_events|
-        @snapshot.store_snapshot(prepared_events)
+      event_stream.append(events) do |prepared_events|
+        snapshot.store_snapshot(prepared_events)
       end
     end
 

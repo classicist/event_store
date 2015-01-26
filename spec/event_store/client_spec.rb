@@ -49,7 +49,6 @@ describe EventStore::Client do
   describe '#raw_event_stream' do
     it "should be an array of hashes that represent database records, not EventStore::SerializedEvent objects" do
       raw_stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
-      expect(raw_stream.class).to eq(Array)
       raw_event = raw_stream.first
       expect(raw_event.class).to eq(Hash)
       expect(raw_event.keys).to eq([:id, :version, :aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event, :sub_key])
@@ -288,16 +287,16 @@ describe EventStore::Client do
         it "should set the snapshot version number to match that of the last event in the aggregate's event stream" do
           events = [@new_event, @really_new_event]
           initial_stream_version = @client.raw_event_stream.last[:version]
-          expect(@client.snapshot.last.version).to eq(initial_stream_version)
+          expect(@client.snapshot.version).to eq(initial_stream_version)
           @client.append(events)
           updated_stream_version = @client.raw_event_stream.last[:version]
-          expect(@client.snapshot.last.version).to eq(updated_stream_version)
+          expect(@client.snapshot.version).to eq(updated_stream_version)
         end
 
         it "should write-through-cache the event in a snapshot without duplicating events" do
           @client.destroy!
           @client.append([@old_event, @new_event, @really_new_event])
-          expect(@client.snapshot).to eq(@client.event_stream)
+          expect(@client.snapshot.to_a).to eq(@client.event_stream)
         end
 
         it "should raise a meaningful exception when a nil event given to it to append" do
@@ -323,7 +322,7 @@ describe EventStore::Client do
           expected =  []
           expected << @client.event_stream.first
           expected << @client.event_stream.last
-          expect(@client.snapshot).to eq(expected)
+          expect(@client.snapshot.to_a).to eq(expected)
         end
 
         #TODO if we let the db assign version# then this can't be true anymore
@@ -341,10 +340,10 @@ describe EventStore::Client do
         it "should set the snapshot version number to match that of the last event in the aggregate's event stream" do
           events = [@old_event, @old_event]
           initial_stream_version = @client.raw_event_stream.last[:version]
-          expect(@client.snapshot.last.version).to eq(initial_stream_version)
+          expect(@client.snapshot.version).to eq(initial_stream_version)
           @client.append(events)
           updated_stream_version = @client.raw_event_stream.last[:version]
-          expect(@client.snapshot.last.version).to eq(updated_stream_version)
+          expect(@client.snapshot.version).to eq(updated_stream_version)
         end
       end
     end
