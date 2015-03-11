@@ -2,7 +2,17 @@ module EventStore
   class Client
     extend Forwardable
 
-    def_delegators :aggregate, :delete_snapshot!, :snapshot_version_table, :version_for
+    def_delegators :aggregate,
+                   :delete_snapshot!,
+                   :snapshot_version_table,
+                   :version_for,
+                   :event_table,
+                   :type,
+                   :id,
+                   :version
+
+    def_delegators :event_stream,
+                   :count
 
     def self.count
       Aggregate.count
@@ -18,18 +28,6 @@ module EventStore
 
     def exists?
       aggregate.snapshot_exists?
-    end
-
-    def id
-      aggregate.id
-    end
-
-    def type
-      aggregate.type
-    end
-
-    def event_table
-      aggregate.event_table
     end
 
     def append(event_data)
@@ -72,14 +70,6 @@ module EventStore
 
     def raw_event_stream_from version_number, max=nil
       aggregate.events_from(version_number, max)
-    end
-
-    def version
-      aggregate.version
-    end
-
-    def count
-      event_stream.length
     end
 
     def destroy!
