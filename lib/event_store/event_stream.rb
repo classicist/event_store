@@ -37,6 +37,21 @@ module EventStore
       end
     end
 
+    def last_event_before(start_time, fully_qualified_names = [])
+      names = fully_qualified_names.map { |n| "\'#{n}\'" }.join(',')
+      last_event_before_query = <<-EOSQL
+      select * from
+          (select *, last_value(occurred_at) over(partition by fully_qualified_name) as last
+          from #{@event_table}
+          where fully_qualified_name in (#{names})
+            and occurred_at < \'#{start_time}\') as subquery
+      where occurred_at = last
+      EOSQL
+
+      query = EventStore.db[last_event_before_query]
+      query.all.map {|e| e[:serialized_event] = EventStore.unescape_bytea(e[:serialized_event]); e}
+    end
+
     def event_stream_between(start_time, end_time, fully_qualified_names = [])
       query = events.where(occurred_at: start_time..end_time)
       query = query.where(fully_qualified_name: fully_qualified_names) if fully_qualified_names && fully_qualified_names.any?

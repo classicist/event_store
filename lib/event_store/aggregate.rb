@@ -21,6 +21,7 @@ module EventStore
       :event_stream,
       :event_stream_between,
       :event_table,
+      :last_event_before,
       :delete_events!
 
     def snapshot_exists?
