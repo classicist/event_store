@@ -50,7 +50,6 @@ describe EventStore::Client do
     describe '#raw_event_stream' do
       it "should be an array of hashes that represent database records, not EventStore::SerializedEvent objects" do
         raw_stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
-        expect(raw_stream.class).to eq(Array)
         raw_event = raw_stream.first
         expect(raw_event.class).to eq(Hash)
         expect(raw_event.keys).to eq([:id, :version, :aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event, :sub_key])
@@ -287,16 +286,19 @@ describe EventStore::Client do
           end
 
           it "sets the snapshot version number to match that of the last event in the aggregate's event stream" do
-            expect(client.snapshot.last.version).to eq(client.raw_event_stream.last[:version])
+            expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
 
             client.append([new_event, really_new_event])
-            expect(client.snapshot.last.version).to eq(client.raw_event_stream.last[:version])
+            expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
           end
 
           it "should write-through-cache the event in a snapshot without duplicating events" do
             client.destroy!
-            client.append([old_event, new_event, really_new_event])
-            expect(client.snapshot).to eq(client.event_stream)
+            client.append([old_event, new_event, new_event])
+            expected = []
+            expected << client.event_stream.first
+            expected << client.event_stream.last
+            expect(client.snapshot.to_a).to eq(expected)
           end
 
           it "should raise a meaningful exception when a nil event given to it to append" do
@@ -323,17 +325,17 @@ describe EventStore::Client do
           it "should write-through-cache the event in a snapshot without duplicating events" do
             client.destroy!
             client.append([old_event, new_event, new_event])
-            expected =  []
+            expected = []
             expected << client.event_stream.first
             expected << client.event_stream.last
-            expect(client.snapshot).to eq(expected)
+            expect(client.snapshot.to_a).to eq(expected)
           end
 
           it "sets the snapshot version number to match that of the last event in the aggregate's event stream" do
-            expect(client.snapshot.last.version).to eq(client.raw_event_stream.last[:version])
+            expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
 
             client.append([old_event, old_event])
-            expect(client.snapshot.last.version).to eq(client.raw_event_stream.last[:version])
+            expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
           end
         end
       end
@@ -379,10 +381,10 @@ describe EventStore::Client do
       let(:oldest_event_time) { event_time + 1 }
       let(:middle_event_time) { event_time + 2 }
       let(:newest_event_time) { event_time + 3 }
-      let(:other_event)       { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "fqn2", "zone", "#{1002.to_s(2)}_foo") }
-      let(:event)             { EventStore::Event.new(AGGREGATE_ID_ONE, (oldest_event_time).utc, "fqn1", "zone", "#{1002.to_s(2)}_foo") }
-      let(:new_event)         { EventStore::Event.new(AGGREGATE_ID_ONE, (middle_event_time).utc, "fqn1", "zone", "#{1002.to_s(2)}_foo") }
-      let(:newest_event)      { EventStore::Event.new(AGGREGATE_ID_ONE, (newest_event_time).utc, "fqn1", "zone", "#{1002.to_s(2)}_foo") }
+      let(:other_event)       { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "fqn2", "other", "#{1002.to_s(2)}_foo") }
+      let(:event)             { EventStore::Event.new(AGGREGATE_ID_ONE, (oldest_event_time).utc, "fqn1", "event", "#{1002.to_s(2)}_foo") }
+      let(:new_event)         { EventStore::Event.new(AGGREGATE_ID_ONE, (middle_event_time).utc, "fqn1", "new", "#{1002.to_s(2)}_foo") }
+      let(:newest_event)      { EventStore::Event.new(AGGREGATE_ID_ONE, (newest_event_time).utc, "fqn1", "newest", "#{1002.to_s(2)}_foo") }
       let(:fqns)              { %W(fqn1 fqn2) }
 
       subject(:client) { es_client.new(AGGREGATE_ID_ONE, :device) }
@@ -397,7 +399,6 @@ describe EventStore::Client do
       end
     end
   end
-
 
   def serialized_event_data_terminated_by_null
     @term_data ||= File.open(File.expand_path("../binary_string_term_with_null_byte.txt", __FILE__), 'rb') {|f| f.read}

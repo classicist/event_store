@@ -42,9 +42,12 @@ module EventStore
       names = fully_qualified_names.map { |n| "\'#{n}\'" }.join(',')
       last_event_before_query = <<-EOSQL
       select * from
-          (select *, last_value(occurred_at) over(partition by fully_qualified_name) as last
+          (select *, last_value(occurred_at)
+             over(partition by fully_qualified_name order by occurred_at
+                  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as last
           from #{@event_table}
-          where fully_qualified_name in (#{names})
+          where aggregate_id = \'#{@id}\'
+            and fully_qualified_name in (#{names})
             and occurred_at < \'#{start_time}\') as subquery
       where occurred_at = last
       EOSQL
