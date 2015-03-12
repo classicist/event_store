@@ -48,6 +48,10 @@ module EventStore
       translate_events(aggregate.events_from(version_number, max))
     end
 
+    def last_event_before(start_time, fully_qualified_names = [])
+      translate_events(aggregate.last_event_before(start_time, fully_qualified_names))
+    end
+
     def event_stream_between(start_time, end_time, fully_qualified_names = [])
       translate_events(aggregate.event_stream_between(start_time, end_time, fully_qualified_names))
     end

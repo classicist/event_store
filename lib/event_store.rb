@@ -135,7 +135,7 @@ module EventStore
   def self.create_db
     connect_db
     table = "#{schema}__schema_info".to_sym
-    @db.run "CREATE SCHEMA #{EventStore.schema};" unless @db.table_exists?(table)
+    @db.run("CREATE SCHEMA IF NOT EXISTS #{schema}")
     Sequel::Migrator.run(@db, File.expand_path(File.join('..','..','db', self.migrations_dir), __FILE__), table: table)
   end
 
