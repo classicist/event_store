@@ -39,16 +39,17 @@ module EventStore
     end
 
     def last_event_before(start_time, fully_qualified_names = [])
-      names = fully_qualified_names.map { |n| "\'#{n}\'" }.join(',')
+      timestampz = start_time.strftime("%Y-%m-%d %H:%M:%S%z")
+      names = fully_qualified_names.map { |n| "'#{n}'" }.join(',')
       last_event_before_query = <<-EOSQL
       select * from
           (select *, last_value(occurred_at)
              over(partition by fully_qualified_name order by occurred_at
                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as last
           from #{@event_table}
-          where aggregate_id = \'#{@id}\'
+          where aggregate_id = '#{@id}'
             and fully_qualified_name in (#{names})
-            and occurred_at < \'#{start_time}\') as subquery
+            and occurred_at < '#{timestampz}') as subquery
       where occurred_at = last
       EOSQL
 
