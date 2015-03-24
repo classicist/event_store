@@ -42,15 +42,16 @@ module EventStore
       timestampz = start_time.strftime("%Y-%m-%d %H:%M:%S%z")
       names = fully_qualified_names.map { |n| "'#{n}'" }.join(',')
       last_event_before_query = <<-EOSQL
-      select * from
-          (select *, last_value(occurred_at)
-             over(partition by fully_qualified_name order by occurred_at
+      SELECT * FROM
+          (SELECT *, LAST_VALUE(occurred_at)
+             OVER(PARTITION BY fully_qualified_name ORDER BY occurred_at
                   ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as last
-          from #{@event_table}
-          where aggregate_id = '#{@id}'
-            and fully_qualified_name in (#{names})
-            and occurred_at < '#{timestampz}') as subquery
-      where occurred_at = last
+          FROM #{@event_table}
+          WHERE aggregate_id = '#{@id}'
+            AND fully_qualified_name IN (#{names})
+            AND occurred_at < '#{timestampz}') AS subquery
+      WHERE occurred_at = last
+      ORDER BY occurred_at
       EOSQL
 
       query = EventStore.db[last_event_before_query]

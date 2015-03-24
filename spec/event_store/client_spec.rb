@@ -395,7 +395,7 @@ describe EventStore::Client do
 
       it "returns the latest event before the given time" do
         last_events = client.last_event_before(newest_event_time, fqns)
-        expect(last_events.map{ |e| e.occurred_at.to_i}).to eq([new_event[:occurred_at].to_i, other_event[:occurred_at].to_i])
+        expect(last_events.map{ |e| e.occurred_at.to_i}).to eq([other_event[:occurred_at].to_i, new_event[:occurred_at].to_i])
       end
     end
   end
