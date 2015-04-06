@@ -141,7 +141,7 @@ module EventStore
       logger.debug { "#{self.class.name} about to query db to see if anything is there" }
       event = @aggregate.events.select(:version).limit(1).all
       logger.debug { "#{self.class.name} took #{Time.now - t} seconds query db for version" }
-      return events_hash if event.nil? #return nil if no events in the ES
+      return events_hash if event.empty? #return nil if no events in the ES
 
       # so there are events in the ES but there is no redis snapshot
       rebuild_snapshot!(logger)
