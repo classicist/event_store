@@ -30,6 +30,12 @@ module EventStore
         client.append events_for(AGGREGATE_ID_TWO)
       end
 
+      describe "#count" do
+        it "delegates to the snapshot hash" do
+          expect(client.snapshot.count).to eq(8)
+        end
+      end
+
       it "rebuilds a snapshot after it is deleted" do
         snapshot = client.snapshot
         client.delete_snapshot!

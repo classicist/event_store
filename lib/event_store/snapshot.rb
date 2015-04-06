@@ -27,6 +27,10 @@ module EventStore
       version(snapshot_key(fully_qualified_name: fully_qualified_name, sub_key: sub_key))
     end
 
+    def count
+      auto_rebuild_snapshot(read_raw_snapshot).count
+    end
+
     def each
       events_hash = auto_rebuild_snapshot(read_raw_snapshot)
       events_hash.inject([]) do |snapshot, (key, value)|
