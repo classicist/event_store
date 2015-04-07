@@ -29,8 +29,8 @@ module EventStore
       version(snapshot_key(fully_qualified_name: fully_qualified_name, sub_key: sub_key))
     end
 
-    def count
-      auto_rebuild_snapshot(read_raw_snapshot).count
+    def count(logger=default_logger)
+      auto_rebuild_snapshot(read_raw_snapshot(logger), logger).count
     end
 
     def each(logger=default_logger)
