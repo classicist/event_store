@@ -134,7 +134,7 @@ module EventStore
     end
 
     def auto_rebuild_snapshot(events_hash, logger=default_logger)
-      logger.info { "#{self.class.name}#auto_rebuild_snapshot(#{events_hash})" }
+      logger.info { "#{self.class.name}#auto_rebuild_snapshot(#{events_hash.count} events)" }
       return events_hash unless events_hash.empty? #got it? return it
 
       t = Time.now
