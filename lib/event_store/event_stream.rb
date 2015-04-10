@@ -105,7 +105,7 @@ module EventStore
     end
 
     def last_version
-      last = events.last
+      last = events.select(:version).last
       last && last[:version] || -1
     end
 
