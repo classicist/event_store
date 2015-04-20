@@ -30,8 +30,10 @@ module EventStore
       aggregate.snapshot_exists?
     end
 
-    def append(event_data)
+    def append(event_data, logger=default_logger)
+      logger.debug("Start Appending #{event_data} to #{id}")
       aggregate.append(event_data)
+      logger.debug("Done Appending #{event_data} to #{id}")
       yield(event_data) if block_given?
       nil
     end
@@ -85,6 +87,10 @@ module EventStore
     private
 
     attr_reader :aggregate
+
+    def default_logger
+      Logger.new("/dev/null")
+    end
 
     def translate_events(event_hashs)
       event_hashs.map { |eh| translate_event(eh) }
