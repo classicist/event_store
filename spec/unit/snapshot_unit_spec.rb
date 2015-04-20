@@ -11,13 +11,13 @@ module EventStore
 
     subject(:snapshot)   { EventStore::Snapshot.new(aggregate) }
 
-    it "has a version table for the snapshot" do
-      expect(snapshot.snapshot_version_table).to eq "#{aggregate_type}_snapshot_versions_for_#{aggregate_id}"
+    it "has a event_id table for the snapshot" do
+      expect(snapshot.snapshot_event_id_table).to eq "#{aggregate_type}_snapshot_event_ids_for_#{aggregate_id}"
     end
 
     context "with events in the snapshot table" do
       let(:first_event) {
-        { version: 1,
+        { id: 1,
           fully_qualified_name: "fqn",
           sub_key: "sub",
           serialized_event: EventStore.escape_bytea("cheerios"),
@@ -25,7 +25,7 @@ module EventStore
         }
       }
       let(:last_event) {
-        { version: 2,
+        { id: 2,
           fully_qualified_name: "fqn2",
           sub_key: "sub2",
           serialized_event: EventStore.escape_bytea("cheerios2"),
@@ -39,29 +39,29 @@ module EventStore
       describe "#last_event" do
         let(:events) { [ last_event, first_event ] }
 
-        it "returns the event with the highest version" do
+        it "returns the event with the highest event_id" do
           expect(snapshot.last_event.fully_qualified_name).to eq(last_event[:fully_qualified_name])
         end
       end
 
-      describe "#version" do
-        it "is the highest version of the last inserted event in the snapshot" do
-          expect(snapshot.version).to eq(last_event[:version])
+      describe "#event_id" do
+        it "is the highest event_id of the last inserted event in the snapshot" do
+          expect(snapshot.event_id).to eq(last_event[:id])
         end
       end
 
-      describe "#version_for" do
+      describe "#event_id_for" do
         let(:subkey) { first_event[:sub_key] }
         let(:fqn)    { first_event[:fully_qualified_name] }
 
-        it "returns the version number for the last event of specific fqn" do
-          expect(snapshot.version_for(fqn, subkey)).to eq(first_event[:version])
+        it "returns the event_id number for the last event of specific fqn" do
+          expect(snapshot.event_id_for(fqn, subkey)).to eq(first_event[:id])
         end
       end
 
       describe "#rebuild_snapshot!" do
         it "deletes the existing snapshot" do
-          expect(redis).to receive(:del).with([snapshot.snapshot_table , snapshot.snapshot_version_table])
+          expect(redis).to receive(:del).with([snapshot.snapshot_table , snapshot.snapshot_event_id_table])
           snapshot.rebuild_snapshot!
         end
 
@@ -78,7 +78,6 @@ module EventStore
       describe "events" do
         let(:serialized_attrs) { [ :fully_qualified_name,
                                    :serialized_event,
-                                   :version,
                                    :occurred_at ] }
 
         it "contains SerializedEvents" do
@@ -90,6 +89,11 @@ module EventStore
             expect(snapshot.first.send(attr)).to eq(first_event[attr])
             expect(snapshot.last_event.send(attr)).to eq(last_event[attr])
           }
+        end
+
+        it "maps the event_id to the serialized event's id" do
+          expect(snapshot.to_a.first.event_id).to eq(first_event[:id])
+          expect(snapshot.to_a.last.event_id).to eq(last_event[:id])
         end
 
         it "unescapes the serialized events" do

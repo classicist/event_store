@@ -15,7 +15,7 @@ describe EventStore::Client do
 
       events_by_aggregate_id  = {AGGREGATE_ID_ONE => [], AGGREGATE_ID_TWO => []}
       @event_time = Time.parse("2001-01-01 00:00:00 UTC")
-      ([AGGREGATE_ID_ONE]*5 + [AGGREGATE_ID_TWO]*5).shuffle.each_with_index do |aggregate_id, version|
+      ([AGGREGATE_ID_ONE]*5 + [AGGREGATE_ID_TWO]*5).shuffle.each_with_index do |aggregate_id, event_id|
         events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "zone_1_event", "1", serialized_binary_event_data)
         events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "zone_2_event", "2", serialized_binary_event_data)
         events_by_aggregate_id[aggregate_id.to_s] << EventStore::Event.new(aggregate_id.to_s, @event_time, "system_event", EventStore::NO_SUB_KEY, serialized_binary_event_data)
@@ -116,48 +116,49 @@ describe EventStore::Client do
     end
 
 
-    describe '#raw_event_streams_from_version' do
+    describe '#raw_event_streams_from_event_id' do
       subject { es_client.new(AGGREGATE_ID_ONE, :device) }
+      let(:raw_stream) { subject.raw_event_stream }
+      let(:minimum_event_id) { raw_stream.events.all[1][:id] }
+      let(:events_from) { subject.raw_event_stream_from(minimum_event_id) }
 
-      it 'should return all the raw events in the stream starting from a certain version' do
-        minimum_event_version = 2
-        raw_stream = subject.raw_event_stream_from(minimum_event_version)
-        event_versions = raw_stream.inject([]){|m, event| m << event[:version]; m}
-        expect(event_versions.min).to be >= minimum_event_version
+      it 'should return all the raw events in the stream starting from a certain event_id' do
+        event_ids = events_from.inject([]){|m, event| m << event[:id]; m}
+        expect(event_ids.min).to be >= minimum_event_id
       end
 
       it 'should return no more than the maximum number of events specified above the ' do
-        max_number_of_events  = 5
-        minimum_event_version = 2
-        raw_stream = subject.raw_event_stream_from(minimum_event_version, max_number_of_events)
+        max_number_of_events = 5
+        minimum_event_id = 2
+        raw_stream = subject.raw_event_stream_from(minimum_event_id, max_number_of_events)
         expect(raw_stream.count).to eq(max_number_of_events)
       end
 
       it 'should be empty for version above the current highest version number' do
-        raw_stream = subject.raw_event_stream_from(subject.version + 1)
+        raw_stream = subject.raw_event_stream_from(subject.event_id + 1)
         expect(raw_stream).to be_empty
       end
     end
 
-    describe 'event_stream_from_version' do
+    describe 'event_stream_from_event_id' do
       subject { es_client.new(AGGREGATE_ID_ONE, :device) }
 
-      it 'should return all the raw events in the stream starting from a certain version' do
-        minimum_event_version = 2
-        raw_stream = subject.raw_event_stream_from(minimum_event_version)
-        event_versions = raw_stream.inject([]){|m, event| m << event[:version]; m}
-        expect(event_versions.min).to be >= minimum_event_version
+      it 'should return all the raw events in the stream starting from a certain event_id' do
+        minimum_event_id = 2
+        raw_stream = subject.raw_event_stream_from(minimum_event_id)
+        event_ids = raw_stream.inject([]){|m, event| m << event[:id]; m}
+        expect(event_ids.min).to be >= minimum_event_id
       end
 
       it 'should return no more than the maximum number of events specified above the ' do
         max_number_of_events  = 5
-        minimum_event_version = 2
-        raw_stream = subject.raw_event_stream_from(minimum_event_version, max_number_of_events)
+        minimum_event_id = 2
+        raw_stream = subject.raw_event_stream_from(minimum_event_id, max_number_of_events)
         expect(raw_stream.count).to eq(max_number_of_events)
       end
 
-      it 'should be empty for version above the current highest version number' do
-        raw_stream = subject.raw_event_stream_from(subject.version + 1)
+      it 'should be empty for event_id above the current highest event id' do
+        raw_stream = subject.raw_event_stream_from(subject.event_id + 1)
         expect(raw_stream).to eq([])
       end
     end
@@ -242,10 +243,10 @@ describe EventStore::Client do
       let(:client) { es_client.new(AGGREGATE_ID_ONE, :device) }
 
       it 'should return the last event in the event stream' do
-        last_event = EventStore.db.from(client.event_table).where(aggregate_id: AGGREGATE_ID_ONE).order(:version).last
+        last_event = EventStore.db.from(client.event_table).where(aggregate_id: AGGREGATE_ID_ONE).order(:id).last
         peek = client.peek
         expect(peek.fully_qualified_name).to eq(last_event[:fully_qualified_name])
-        expect(peek.version).to eq(last_event[:version])
+        expect(peek.event_id).to eq(last_event[:id])
       end
     end
   end
@@ -260,7 +261,7 @@ describe EventStore::Client do
       let(:really_new_event) { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time + 100).utc,  "really_new", "zone", "#{1002.to_s(2)}_foo") }
       let(:duplicate_event)  { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "duplicate", "zone", "#{12.to_s(2)}_foo") }
 
-      describe "when expected version number is greater than the last version" do
+      describe "when expected event id is greater than the last event id" do
         describe 'and there are no prior events of type' do
           before(:each) do
             client.append([old_event])
@@ -280,16 +281,16 @@ describe EventStore::Client do
             expect(client.count).to eq(initial_count + events.length)
           end
 
-          it "should increment the version number by the number of events added" do
+          it "should change the event id number" do
             events = [new_event, really_new_event]
-            expect{client.append(events)}.to change(client, :version).by(events.length)
+            expect{ client.append(events) }.to change(client, :event_id)
           end
 
-          it "sets the snapshot version number to match that of the last event in the aggregate's event stream" do
-            expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
+          it "sets the snapshot event id number to match that of the last event in the aggregate's event stream" do
+            expect(client.snapshot.event_id).to eq(client.raw_event_stream.last[:id])
 
             client.append([new_event, really_new_event])
-            expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
+            expect(client.snapshot.event_id).to eq(client.raw_event_stream.last[:id])
           end
 
           it "should write-through-cache the event in a snapshot without duplicating events" do
@@ -311,12 +312,6 @@ describe EventStore::Client do
             client.append([old_event])
           end
 
-          xit 'should raise a ConcurrencyError if the the event version is less than current version' do
-            client.append([duplicate_event])
-            reset_current_version_for(client)
-            expect { client.append([duplicate_event]) }.to raise_error(EventStore::ConcurrencyError)
-          end
-
           it 'should not raise an error when two events of the same type are appended' do
             client.append([duplicate_event])
             client.append([duplicate_event]) #will fail automatically if it throws an error, no need for assertions (which now print warning for some reason)
@@ -331,11 +326,11 @@ describe EventStore::Client do
             expect(client.snapshot.to_a).to eq(expected)
           end
 
-          it "sets the snapshot version number to match that of the last event in the aggregate's event stream" do
-            expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
+          it "sets the snapshot event id to match that of the last event in the aggregate's event stream" do
+            expect(client.snapshot.event_id).to eq(client.raw_event_stream.last[:id])
 
             client.append([old_event, old_event])
-            expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
+            expect(client.snapshot.event_id).to eq(client.raw_event_stream.last[:id])
           end
         end
       end
@@ -369,11 +364,6 @@ describe EventStore::Client do
             expect(raw_event_data).to eq([new_event])
           end
         end
-      end
-
-      def reset_current_version_for(client)
-        aggregate = client.instance_variable_get("@aggregate")
-        EventStore.redis.hset(aggregate.snapshot_version_table, :current_version, 1000)
       end
     end
 

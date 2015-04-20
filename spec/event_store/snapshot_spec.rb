@@ -11,8 +11,8 @@ module EventStore
 
       it "should build an empty snapshot for a new client" do
         expect(client.snapshot.any?).to eq(false)
-        expect(client.version).to eq(-1)
-        expect(EventStore.redis.hget(client.snapshot_version_table, :current_version)).to eq(nil)
+        expect(client.event_id).to eq(-1)
+        expect(EventStore.redis.hget(client.snapshot_event_id_table, :current_event_id)).to eq(nil)
       end
 
       it "a client should rebuild a snapshot" do
@@ -61,7 +61,7 @@ module EventStore
       end
 
       it "increments the version number of the snapshot when an event is appended" do
-        expect(client.snapshot.version).to eq(client.raw_event_stream.last[:version])
+        expect(client.snapshot.event_id).to eq(client.raw_event_stream.last[:id])
       end
     end
 

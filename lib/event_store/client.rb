@@ -4,12 +4,12 @@ module EventStore
 
     def_delegators :aggregate,
                    :delete_snapshot!,
-                   :snapshot_version_table,
-                   :version_for,
+                   :snapshot_event_id_table,
+                   :event_id,
+                   :event_id_for,
                    :event_table,
                    :type,
-                   :id,
-                   :version
+                   :id
 
     def_delegators :event_stream,
                    :count
@@ -46,8 +46,8 @@ module EventStore
       translate_events(raw_event_stream)
     end
 
-    def event_stream_from(version_number, max=nil)
-      translate_events(aggregate.events_from(version_number, max))
+    def event_stream_from(event_id, max=nil)
+      translate_events(aggregate.events_from(event_id, max))
     end
 
     def last_event_before(start_time, fully_qualified_names = [])
@@ -70,8 +70,8 @@ module EventStore
       aggregate.event_stream
     end
 
-    def raw_event_stream_from version_number, max=nil
-      aggregate.events_from(version_number, max)
+    def raw_event_stream_from(event_id, max=nil)
+      aggregate.events_from(event_id, max)
     end
 
     def destroy!
@@ -99,7 +99,7 @@ module EventStore
     def translate_event(event_hash)
       return if event_hash.empty?
       occurred_at = TimeHacker.translate_occurred_at_from_local_to_gmt(event_hash[:occurred_at])
-      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:version], occurred_at
+      SerializedEvent.new event_hash[:fully_qualified_name], event_hash[:serialized_event], event_hash[:id], occurred_at
     end
   end
 end

@@ -11,28 +11,26 @@ module EventStore
     end
 
     def append(raw_events)
-      EventStore.db.transaction do
-        next_version = last_version + 1
-
-        prepared_events = raw_events.map do |raw_event|
-          event = prepare_event(raw_event, next_version)
-          next_version += 1
-          ensure_all_attributes_have_values!(event)
-          event
-        end
-
-        events.multi_insert(prepared_events)
-
-        yield(prepared_events) if block_given?
+      prepared_events = raw_events.map do |raw_event|
+        event = prepare_event(raw_event)
+        ensure_all_attributes_have_values!(event)
+        event
       end
+
+      inserted_ids = events.multi_insert(prepared_events, return: :primary_key)
+      prepared_events.each_with_index do |event, idx|
+        event[:id] = inserted_ids[idx]
+      end
+
+      yield(prepared_events) if block_given?
     end
 
     def events
-      @events_query ||= EventStore.db.from(@event_table).where(:aggregate_id => @id.to_s).order(:version)
+      @events_query ||= EventStore.db.from(@event_table).where(:aggregate_id => @id.to_s).order(:id)
     end
 
-    def events_from(version_number, max = nil)
-      events.limit(max).where{ version >= version_number.to_i }.all.map do |event|
+    def events_from(event_id, max = nil)
+      events.limit(max).where{ id >= event_id.to_i }.all.map do |event|
         event[:serialized_event] = EventStore.unescape_bytea(event[:serialized_event])
         event
       end
@@ -85,10 +83,9 @@ module EventStore
 
   private
 
-    def prepare_event(raw_event, version_number)
+    def prepare_event(raw_event)
       raise ArgumentError.new("Cannot Append a Nil Event") unless raw_event
-      { :version              => version_number,
-        :aggregate_id         => raw_event.aggregate_id,
+      { :aggregate_id         => raw_event.aggregate_id,
         :occurred_at          => Time.parse(raw_event.occurred_at.to_s).utc, #to_s truncates microseconds, which brake Time equality
         :serialized_event     => EventStore.escape_bytea(raw_event.serialized_event),
         :fully_qualified_name => raw_event.fully_qualified_name,
@@ -97,17 +94,11 @@ module EventStore
     end
 
     def ensure_all_attributes_have_values!(event_hash)
-      [:aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event, :version].each do |attribute_name|
+      [:aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event].each do |attribute_name|
         if event_hash[attribute_name].to_s.strip.empty?
           raise AttributeMissingError, "value required for #{attribute_name}"
         end
       end
     end
-
-    def last_version
-      last = events.select(:version).last
-      last && last[:version] || -1
-    end
-
   end
 end

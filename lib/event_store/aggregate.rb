@@ -10,9 +10,9 @@ module EventStore
       :last_event,
       :rebuild_snapshot!,
       :delete_snapshot!,
-      :version,
-      :version_for,
-      :snapshot_version_table
+      :event_id,
+      :event_id_for,
+      :snapshot_event_id_table
 
     def_delegators :event_stream,
       :events,

@@ -4,13 +4,13 @@ module EventStore
   class Snapshot
     include Enumerable
 
-    attr_reader :snapshot_version_table, :snapshot_table
+    attr_reader :snapshot_event_id_table, :snapshot_table
 
     def initialize aggregate
       @aggregate = aggregate
       @redis = EventStore.redis
       @snapshot_table = "#{@aggregate.type}_snapshots_for_#{@aggregate.id}"
-      @snapshot_version_table = "#{@aggregate.type}_snapshot_versions_for_#{@aggregate.id}"
+      @snapshot_event_id_table = "#{@aggregate.type}_snapshot_event_ids_for_#{@aggregate.id}"
     end
 
     def exists?
@@ -21,12 +21,12 @@ module EventStore
       to_a.last
     end
 
-    def version(snapshot_key =:current_version)
-      (@redis.hget(snapshot_version_table, snapshot_key) || -1).to_i
+    def event_id(snapshot_key =:current_event_id)
+      (@redis.hget(snapshot_event_id_table, snapshot_key) || -1).to_i
     end
 
-    def version_for(fully_qualified_name, sub_key = nil)
-      version(snapshot_key(fully_qualified_name: fully_qualified_name, sub_key: sub_key))
+    def event_id_for(fully_qualified_name, sub_key = nil)
+      event_id(snapshot_key(fully_qualified_name: fully_qualified_name, sub_key: sub_key))
     end
 
     def count(logger=default_logger)
@@ -43,13 +43,13 @@ module EventStore
       result_hash = events_hash.inject([]) do |snapshot, (key, value)|
         fully_qualified_name, _ = key.split(EventStore::SNAPSHOT_KEY_DELIMITER)
         raw_event               = value.split(EventStore::SNAPSHOT_DELIMITER)
-        version                 = raw_event.first.to_i
+        event_id                = raw_event.first.to_i
         serialized_event        = EventStore.unescape_bytea(raw_event[1])
         occurred_at             = Time.parse(raw_event.last)
-        snapshot + [SerializedEvent.new(fully_qualified_name, serialized_event, version, occurred_at)]
+        snapshot + [SerializedEvent.new(fully_qualified_name, serialized_event, event_id, occurred_at)]
       end
       logger.debug { "#{self.class.name} serializing events took #{Time.now - t} seconds" }
-      result_hash.sort_by(&:version).each { |e| yield e }
+      result_hash.sort_by(&:event_id).each { |e| yield e }
     end
 
     def rebuild_snapshot!(logger=default_logger)
@@ -69,25 +69,25 @@ module EventStore
     end
 
     def delete_snapshot!
-      EventStore.redis.del [snapshot_table, snapshot_version_table]
+      EventStore.redis.del [snapshot_table, snapshot_event_id_table]
     end
 
     def store_snapshot(prepared_events)
       valid_snapshot_events = []
-      valid_snapshot_versions = []
+      valid_snapshot_event_ids = []
 
       prepared_events.each do |event_hash|
-        if event_hash[:version].to_i > current_version_numbers[snapshot_key(event_hash)].to_i
-          valid_snapshot_events   += snapshot_event(event_hash)
-          valid_snapshot_versions += snapshot_version(event_hash)
+        if event_hash[:id].to_i > current_event_id_numbers[snapshot_key(event_hash)].to_i
+          valid_snapshot_events    += snapshot_event(event_hash)
+          valid_snapshot_event_ids += snapshot_event_id(event_hash)
         end
       end
 
-      unless valid_snapshot_versions.empty?
-        valid_snapshot_versions += [:current_version, valid_snapshot_versions.last.to_i]
+      unless valid_snapshot_event_ids.empty?
+        valid_snapshot_event_ids += [:current_event_id, valid_snapshot_event_ids.last.to_i]
 
         @redis.multi do
-          @redis.hmset(snapshot_version_table, valid_snapshot_versions)
+          @redis.hmset(snapshot_event_id_table, valid_snapshot_event_ids)
           @redis.hmset(snapshot_table, valid_snapshot_events)
         end
       end
@@ -106,24 +106,24 @@ module EventStore
     def snapshot_event(event)
       [
         snapshot_key(event),
-        [ event[:version].to_s,
+        [ event[:id].to_s,
           event[:serialized_event],
           event[:occurred_at].to_s
         ].join(EventStore::SNAPSHOT_DELIMITER)
       ]
     end
 
-    def snapshot_version(event)
+    def snapshot_event_id(event)
       [
         snapshot_key(event),
-        event[:version]
+        event[:id]
       ]
     end
 
-    def current_version_numbers
-      current_versions = @redis.hgetall(snapshot_version_table)
-      current_versions.default = -1
-      current_versions
+    def current_event_id_numbers
+      @redis.hgetall(snapshot_event_id_table).tap { |event_ids|
+        event_ids.default = -1
+      }
     end
 
     def read_raw_snapshot(logger=default_logger)
