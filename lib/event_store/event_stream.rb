@@ -38,22 +38,13 @@ module EventStore
 
     def last_event_before(start_time, fully_qualified_names = [])
       timestampz = start_time.strftime("%Y-%m-%d %H:%M:%S%z")
-      names = fully_qualified_names.map { |n| "'#{n}'" }.join(',')
-      last_event_before_query = <<-EOSQL
-      SELECT * FROM
-          (SELECT *, LAST_VALUE(occurred_at)
-             OVER(PARTITION BY fully_qualified_name ORDER BY occurred_at
-                  ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING) as last
-          FROM #{@event_table}
-          WHERE aggregate_id = '#{@id}'
-            AND fully_qualified_name IN (#{names})
-            AND occurred_at < '#{timestampz}') AS subquery
-      WHERE occurred_at = last
-      ORDER BY occurred_at
-      EOSQL
 
-      query = EventStore.db[last_event_before_query]
-      query.all.map {|e| e[:serialized_event] = EventStore.unescape_bytea(e[:serialized_event]); e}
+      rows = fully_qualified_names.inject([]) { |memo, name|
+        memo + events.where(fully_qualified_name: name).where{ occurred_at < timestampz }
+                 .reverse_order(:occurred_at).limit(1).all
+      }.sort_by { |r| r[:occurred_at] }
+
+      rows.map {|r| r[:serialized_event] = EventStore.unescape_bytea(r[:serialized_event]); r}
     end
 
     def event_stream_between(start_time, end_time, fully_qualified_names = [])
