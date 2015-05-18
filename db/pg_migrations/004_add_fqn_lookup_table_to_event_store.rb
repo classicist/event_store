@@ -22,7 +22,7 @@ Sequel.migration do
 
     alter_table(event_store_table) do
       idx_name = "aggregate_id_occurred_at_fqn_id_idx"
-      add_foreign_key :fully_qualified_name_id, lookup_table, key: :id, null: false
+      add_foreign_key :fully_qualified_name_id, lookup_table, key: :id
       add_index([:aggregate_id, :occurred_at, :fully_qualified_name_id], name: idx_name)
     end
 
@@ -34,6 +34,8 @@ Sequel.migration do
     EOSQL
 
     alter_table(event_store_table) do
+      set_column_not_null :fully_qualified_name_id
+
       old_idx_name = "#{EventStore.schema}_#{EventStore.table_name}_aggregate_id_occurred_at_name_idx"
       drop_index [:aggregate_id, :occurred_at, :fully_qualified_name], name: old_idx_name
       drop_index :fully_qualified_name
