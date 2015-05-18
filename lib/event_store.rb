@@ -64,8 +64,16 @@ module EventStore
     @table_name ||= raw_db_config['table_name']
   end
 
+  def self.lookup_table_name
+    @lookup_table_name ||= raw_db_config['lookup_table_name'] || "fully_qualified_names"
+  end
+
   def self.fully_qualified_table
     @fully_qualified_table ||= Sequel.lit "#{schema}.#{table_name}"
+  end
+
+  def self.fully_qualified_names_table
+    @fully_qualified_names_table ||= Sequel.lit "#{schema}.#{lookup_table_name}"
   end
 
   def self.connected?

@@ -52,7 +52,7 @@ describe EventStore::Client do
         raw_stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
         raw_event = raw_stream.first
         expect(raw_event.class).to eq(Hash)
-        expect(raw_event.keys).to eq([:id, :version, :aggregate_id, :fully_qualified_name, :occurred_at, :serialized_event, :sub_key])
+        expect(raw_event.keys.to_set).to eq(Set.new([:id, :version, :aggregate_id, :fully_qualified_name, :fully_qualified_name_id, :occurred_at, :serialized_event, :sub_key]))
       end
 
       it 'should be empty for aggregates without events' do
@@ -108,13 +108,13 @@ describe EventStore::Client do
           client = es_client.new("any_device", :device)
           serialized_event = serialized_event_data_terminated_by_null
           event = EventStore::Event.new("any_device", @event_time, 'terminated_by_null_event', "zone_number", serialized_event)
-          client.append([event])
-          hex_from_db = EventStore.db.from(EventStore.fully_qualified_table).where(fully_qualified_name: 'terminated_by_null_event').first[:serialized_event]
+          retval = client.append([event])
+          hex_from_db = EventStore.db.from(EventStore.fully_qualified_table).order(:id).last[:serialized_event]
+
           expect(hex_from_db).to eql(EventStore.escape_bytea(serialized_event))
         end
       end
     end
-
 
     describe '#raw_event_streams_from_event_id' do
       subject { es_client.new(AGGREGATE_ID_ONE, :device) }
@@ -243,7 +243,7 @@ describe EventStore::Client do
       let(:client) { es_client.new(AGGREGATE_ID_ONE, :device) }
 
       it 'should return the last event in the event stream' do
-        last_event = EventStore.db.from(client.event_table).where(aggregate_id: AGGREGATE_ID_ONE).order(:id).last
+        last_event = client.raw_event_stream.last
         peek = client.peek
         expect(peek.fully_qualified_name).to eq(last_event[:fully_qualified_name])
         expect(peek.event_id).to eq(last_event[:id])

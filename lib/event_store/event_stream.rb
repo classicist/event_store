@@ -7,7 +7,10 @@ module EventStore
     def initialize aggregate
       @aggregate = aggregate
       @id = @aggregate.id
-      @event_table = EventStore.fully_qualified_table
+      @event_table_alias = "events"
+      @event_table = "#{EventStore.schema}__#{EventStore.table_name}".to_sym
+      @aliased_event_table = "#{event_table}___#{@event_table_alias}".to_sym
+      @names_table = EventStore.fully_qualified_names_table
     end
 
     def append(raw_events)
@@ -17,20 +20,38 @@ module EventStore
         event
       end
 
-      inserted_ids = events.multi_insert(prepared_events, return: :primary_key)
-      prepared_events.each_with_index do |event, idx|
-        event[:id] = inserted_ids[idx]
+      event_table = EventStore.db.from(@event_table)
+      prepared_events.each do |event|
+        event_hash = event.dup.reject! { |k,v| k == :fully_qualified_name }
+
+        begin
+          id = event_table.insert(event_hash)
+        rescue Sequel::NotNullConstraintViolation
+          fully_qualified_names.insert(fully_qualified_name: event[:fully_qualified_name])
+          id = event_table.insert(event_hash)
+        end
+
+        event[:id] = id
       end
 
       yield(prepared_events) if block_given?
     end
 
+    def fully_qualified_names
+      @fully_qualified_name_query ||= EventStore.db.from(@names_table)
+    end
+
     def events
-      @events_query ||= EventStore.db.from(@event_table).where(:aggregate_id => @id.to_s).order(:id)
+      @events_query ||= EventStore.db.from(@aliased_event_table)            \
+                          .where(:aggregate_id => @id.to_s)                 \
+                          .join(@names_table, id: :fully_qualified_name_id) \
+                          .order("#{@event_table_alias}__id".to_sym)        \
+                          .select_all(:events).select_append(:fully_qualified_name)
     end
 
     def events_from(event_id, max = nil)
-      events.limit(max).where{ id >= event_id.to_i }.all.map do |event|
+      # note: this depends on the events table being aliased to "events" above.
+      events.limit(max).where{events__id >= event_id.to_i }.all.map do |event|
         event[:serialized_event] = EventStore.unescape_bytea(event[:serialized_event])
         event
       end
@@ -69,18 +90,19 @@ module EventStore
     end
 
     def delete_events!
-      events.delete
+      EventStore.db.from(@event_table).where(:aggregate_id => @id.to_s).delete
     end
 
   private
 
     def prepare_event(raw_event)
       raise ArgumentError.new("Cannot Append a Nil Event") unless raw_event
-      { :aggregate_id         => raw_event.aggregate_id,
-        :occurred_at          => Time.parse(raw_event.occurred_at.to_s).utc, #to_s truncates microseconds, which brake Time equality
-        :serialized_event     => EventStore.escape_bytea(raw_event.serialized_event),
-        :fully_qualified_name => raw_event.fully_qualified_name,
-        :sub_key              => raw_event.sub_key
+      { :aggregate_id            => raw_event.aggregate_id,
+        :occurred_at             => Time.parse(raw_event.occurred_at.to_s).utc, #to_s truncates microseconds, which brake Time equality
+        :serialized_event        => EventStore.escape_bytea(raw_event.serialized_event),
+        :fully_qualified_name_id => EventStore.db.from(@names_table).where(fully_qualified_name: raw_event.fully_qualified_name).select(:id),
+        :fully_qualified_name    => raw_event.fully_qualified_name,
+        :sub_key                 => raw_event.sub_key
       }
     end
 
