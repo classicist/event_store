@@ -1,22 +1,5 @@
-require "simplecov"
-require "simplecov-rcov"
 require "ostruct"
 require "rspec"
-
-class SimpleCov::Formatter::MergedFormatter
-  def format(result)
-    SimpleCov::Formatter::HTMLFormatter.new.format(result)
-    SimpleCov::Formatter::RcovFormatter.new.format(result)
-  end
-end
-SimpleCov.formatter = SimpleCov::Formatter::MergedFormatter
-
-SimpleCov.start do
-  add_filter "/spec/"
-  add_filter "/vendor/bundle/"
-  add_filter "lib/event_store.rb"
-  SimpleCov.minimum_coverage 75
-end
 
 require "event_store"
 
