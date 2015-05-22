@@ -17,7 +17,7 @@ SimpleCov.start do
   add_filter "/spec/"
   add_filter "/vendor/bundle/"
   add_filter 'lib/event_store.rb'
-  SimpleCov.minimum_coverage 95
+  # SimpleCov.minimum_coverage 95
 end
 
 require 'event_store'
