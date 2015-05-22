@@ -1,4 +1,4 @@
-require 'spec_helper'
+require "spec_helper"
 
 describe "Configuration" do
   it "should do nothing if you try to clear! without a connected db" do

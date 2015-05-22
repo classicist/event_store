@@ -1,5 +1,5 @@
-require 'spec_helper'
-require 'securerandom'
+require "spec_helper"
+require "securerandom"
 
 AGGREGATE_ID_ONE   = SecureRandom.uuid
 AGGREGATE_ID_TWO   = SecureRandom.uuid
@@ -47,7 +47,7 @@ describe EventStore::Client do
       end
     end
 
-    describe '#raw_event_stream' do
+    describe "#raw_event_stream" do
       it "should be an array of hashes that represent database records, not EventStore::SerializedEvent objects" do
         raw_stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
         raw_event = raw_stream.first
@@ -55,23 +55,23 @@ describe EventStore::Client do
         expect(raw_event.keys.to_set).to eq(Set.new([:id, :version, :aggregate_id, :fully_qualified_name, :fully_qualified_name_id, :occurred_at, :serialized_event, :sub_key]))
       end
 
-      it 'should be empty for aggregates without events' do
+      it "should be empty for aggregates without events" do
         stream = es_client.new(100, :device).raw_event_stream
         expect(stream.empty?).to be_truthy
       end
 
-      it 'should only have events for a single aggregate' do
+      it "should only have events for a single aggregate" do
         stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
         stream.each { |event| expect(event[:aggregate_id]).to eq(AGGREGATE_ID_ONE) }
       end
 
-      it 'should have all events for that aggregate' do
+      it "should have all events for that aggregate" do
         stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
         expect(stream.count).to eq(15)
       end
     end
 
-    describe '#event_stream' do
+    describe "#event_stream" do
       it "should be an array of EventStore::SerializedEvent objects" do
         stream = es_client.new(AGGREGATE_ID_ONE, :device).event_stream
         expect(stream.class).to eq(Array)
@@ -79,18 +79,18 @@ describe EventStore::Client do
         expect(event.class).to eq(EventStore::SerializedEvent)
       end
 
-      it 'should be empty for aggregates without events' do
+      it "should be empty for aggregates without events" do
         stream = es_client.new(100, :device).raw_event_stream
         expect(stream.empty?).to be_truthy
       end
 
-      it 'should only have events for a single aggregate' do
+      it "should only have events for a single aggregate" do
         raw_stream = es_client.new(AGGREGATE_ID_ONE, :device).raw_event_stream
         stream = es_client.new(AGGREGATE_ID_ONE, :device).event_stream
         expect(stream.map(&:fully_qualified_name)).to eq(raw_stream.inject([]){|m, event| m << event[:fully_qualified_name]; m})
       end
 
-      it 'should have all events for that aggregate' do
+      it "should have all events for that aggregate" do
         stream = es_client.new(AGGREGATE_ID_ONE, :device).event_stream
         expect(stream.count).to eq(15)
       end
@@ -99,7 +99,7 @@ describe EventStore::Client do
         it "does not truncate the serialized event when there is a binary zero value is at the end" do
           serialized_event = serialized_event_data_terminated_by_null
           client = es_client.new("any_device", :device)
-          event = EventStore::Event.new("any_device", @event_time, 'other_event_name', "nozone", serialized_event)
+          event = EventStore::Event.new("any_device", @event_time, "other_event_name", "nozone", serialized_event)
           client.append([event])
           expect(client.event_stream.last[:serialized_event]).to eql(serialized_event)
         end
@@ -107,7 +107,7 @@ describe EventStore::Client do
         it "conversion of byte array to and from hex should be lossless" do
           client = es_client.new("any_device", :device)
           serialized_event = serialized_event_data_terminated_by_null
-          event = EventStore::Event.new("any_device", @event_time, 'terminated_by_null_event', "zone_number", serialized_event)
+          event = EventStore::Event.new("any_device", @event_time, "terminated_by_null_event", "zone_number", serialized_event)
           retval = client.append([event])
           hex_from_db = EventStore.db.from(EventStore.fully_qualified_table).order(:id).last[:serialized_event]
 
@@ -116,54 +116,54 @@ describe EventStore::Client do
       end
     end
 
-    describe '#raw_event_streams_from_event_id' do
+    describe "#raw_event_streams_from_event_id" do
       subject { es_client.new(AGGREGATE_ID_ONE, :device) }
       let(:raw_stream) { subject.raw_event_stream }
       let(:minimum_event_id) { raw_stream.events.all[1][:id] }
       let(:events_from) { subject.raw_event_stream_from(minimum_event_id) }
 
-      it 'should return all the raw events in the stream starting from a certain event_id' do
+      it "should return all the raw events in the stream starting from a certain event_id" do
         event_ids = events_from.inject([]){|m, event| m << event[:id]; m}
         expect(event_ids.min).to be >= minimum_event_id
       end
 
-      it 'should return no more than the maximum number of events specified above the ' do
+      it "should return no more than the maximum number of events specified above the " do
         max_number_of_events = 5
         minimum_event_id = 2
         raw_stream = subject.raw_event_stream_from(minimum_event_id, max_number_of_events)
         expect(raw_stream.count).to eq(max_number_of_events)
       end
 
-      it 'should be empty for version above the current highest version number' do
+      it "should be empty for version above the current highest version number" do
         raw_stream = subject.raw_event_stream_from(subject.event_id + 1)
         expect(raw_stream).to be_empty
       end
     end
 
-    describe 'event_stream_from_event_id' do
+    describe "event_stream_from_event_id" do
       subject { es_client.new(AGGREGATE_ID_ONE, :device) }
 
-      it 'should return all the raw events in the stream starting from a certain event_id' do
+      it "should return all the raw events in the stream starting from a certain event_id" do
         minimum_event_id = 2
         raw_stream = subject.raw_event_stream_from(minimum_event_id)
         event_ids = raw_stream.inject([]){|m, event| m << event[:id]; m}
         expect(event_ids.min).to be >= minimum_event_id
       end
 
-      it 'should return no more than the maximum number of events specified above the ' do
+      it "should return no more than the maximum number of events specified above the " do
         max_number_of_events  = 5
         minimum_event_id = 2
         raw_stream = subject.raw_event_stream_from(minimum_event_id, max_number_of_events)
         expect(raw_stream.count).to eq(max_number_of_events)
       end
 
-      it 'should be empty for event_id above the current highest event id' do
+      it "should be empty for event_id above the current highest event id" do
         raw_stream = subject.raw_event_stream_from(subject.event_id + 1)
         expect(raw_stream).to eq([])
       end
     end
 
-    describe '#event_stream_between' do
+    describe "#event_stream_between" do
       subject {es_client.new(AGGREGATE_ID_ONE, :device)}
 
       before do
@@ -213,36 +213,36 @@ describe EventStore::Client do
       it "returns types requested within the time range" do
         start_time = @oldest_event_time
         end_time   = @newest_event_time
-        fully_qualified_name = 'middle_event'
+        fully_qualified_name = "middle_event"
         expect(subject.event_stream_between(start_time, end_time, [fully_qualified_name]).length).to eq(1)
       end
 
       it "returns types requested within the time range for more than one type" do
         start_time = @oldest_event_time
         end_time   = @newest_event_time
-        fully_qualified_names = ['middle_event', 'newest_event_type']
+        fully_qualified_names = ["middle_event", "newest_event_type"]
         expect(subject.event_stream_between(start_time, end_time, fully_qualified_names).length).to eq(2)
       end
 
       it "returns an empty array if there are no events of the requested types in the time range" do
         start_time = @oldest_event_time
         end_time   = @newest_event_time
-        fully_qualified_names = ['random_strings']
+        fully_qualified_names = ["random_strings"]
         expect(subject.event_stream_between(start_time, end_time, fully_qualified_names).length).to eq(0)
       end
 
       it "returns only events of types that exist within the time range" do
         start_time = @oldest_event_time
         end_time   = @newest_event_time
-        fully_qualified_names = ['middle_event', 'event_name']
+        fully_qualified_names = ["middle_event", "event_name"]
         expect(subject.event_stream_between(start_time, end_time, fully_qualified_names).length).to eq(1)
       end
     end
 
-    describe '#peek' do
+    describe "#peek" do
       let(:client) { es_client.new(AGGREGATE_ID_ONE, :device) }
 
-      it 'should return the last event in the event stream' do
+      it "should return the last event in the event stream" do
         last_event = client.raw_event_stream.last
         peek = client.peek
         expect(peek.fully_qualified_name).to eq(last_event[:fully_qualified_name])
@@ -254,7 +254,7 @@ describe EventStore::Client do
   context "with prescribed events" do
     let(:event_time)        { Time.now }
 
-    describe '#append' do
+    describe "#append" do
       let(:client)          { EventStore::Client.new(AGGREGATE_ID_ONE, :device) }
       let(:old_event)        { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time - 2000).utc, "old", "zone", "#{1000.to_s(2)}_foo") }
       let(:new_event)        { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time - 1000).utc, "new", "zone", "#{1001.to_s(2)}_foo") }
@@ -262,19 +262,19 @@ describe EventStore::Client do
       let(:duplicate_event)  { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "duplicate", "zone", "#{12.to_s(2)}_foo") }
 
       describe "when expected event id is greater than the last event id" do
-        describe 'and there are no prior events of type' do
+        describe "and there are no prior events of type" do
           before(:each) do
             client.append([old_event])
           end
 
-          it 'should append a single event of a new type without raising an error' do
+          it "should append a single event of a new type without raising an error" do
             initial_count = client.count
             events = [new_event]
             client.append(events)
             expect(client.count).to eq(initial_count + events.length)
           end
 
-          it 'should append multiple events of a new type without raising and error' do
+          it "should append multiple events of a new type without raising and error" do
             initial_count = client.count
             events = [new_event, new_event]
             client.append(events)
@@ -307,12 +307,12 @@ describe EventStore::Client do
           end
         end
 
-        describe 'with prior events of same type' do
+        describe "with prior events of same type" do
           before(:each) do
             client.append([old_event])
           end
 
-          it 'should not raise an error when two events of the same type are appended' do
+          it "should not raise an error when two events of the same type are appended" do
             client.append([duplicate_event])
             client.append([duplicate_event]) #will fail automatically if it throws an error, no need for assertions (which now print warning for some reason)
           end
@@ -335,31 +335,31 @@ describe EventStore::Client do
         end
       end
 
-      describe 'transactional' do
+      describe "transactional" do
         before do
           @bad_event = new_event.dup
           @bad_event.fully_qualified_name = nil
         end
 
-        it 'should revert all append events if one fails' do
+        it "should revert all append events if one fails" do
           starting_count = client.count
           expect { client.append([new_event, @bad_event]) }.to raise_error(EventStore::AttributeMissingError)
           expect(client.count).to eq(starting_count)
         end
 
-        it 'does not yield to the block if it fails' do
+        it "does not yield to the block if it fails" do
           x = 0
           expect { client.append([@bad_event]) { x += 1 } }.to raise_error(EventStore::AttributeMissingError)
           expect(x).to eq(0)
         end
 
-        it 'yield to the block after event creation' do
+        it "yield to the block after event creation" do
           x = 0
           client.append([]) { x += 1 }
           expect(x).to eq(1)
         end
 
-        it 'should pass the raw event_data to the block' do
+        it "should pass the raw event_data to the block" do
           client.append([new_event]) do |raw_event_data|
             expect(raw_event_data).to eq([new_event])
           end
@@ -367,7 +367,7 @@ describe EventStore::Client do
       end
     end
 
-    describe '#last_event_before' do
+    describe "#last_event_before" do
       let(:oldest_event_time) { event_time + 1 }
       let(:middle_event_time) { event_time + 2 }
       let(:newest_event_time) { event_time + 3 }
@@ -391,12 +391,12 @@ describe EventStore::Client do
   end
 
   def serialized_event_data_terminated_by_null
-    @term_data ||= File.open(File.expand_path("../binary_string_term_with_null_byte.txt", __FILE__), 'rb') {|f| f.read}
+    @term_data ||= File.open(File.expand_path("../binary_string_term_with_null_byte.txt", __FILE__), "rb") {|f| f.read}
     @term_data
   end
 
   def serialized_binary_event_data
-    @event_data ||= File.open(File.expand_path("../serialized_binary_event_data.txt", __FILE__), 'rb') {|f| f.read}
+    @event_data ||= File.open(File.expand_path("../serialized_binary_event_data.txt", __FILE__), "rb") {|f| f.read}
     @event_data
   end
 end

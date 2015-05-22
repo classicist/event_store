@@ -28,7 +28,7 @@ desc "migrate db"
 task :'db:migrate' do
   begin
     sh 'createdb history_store'
-  rescue => e
+  rescue
     #we don't care if it exists already, so don't fail
   end
   sh 'psql history_store < db/setup_db_user.sql'

@@ -1,5 +1,5 @@
-require 'spec_helper'
-require 'securerandom'
+require "spec_helper"
+require "securerandom"
 
 AGGREGATE_ID_ONE = SecureRandom.uuid
 AGGREGATE_ID_TWO = SecureRandom.uuid
@@ -85,7 +85,7 @@ module EventStore
     end
 
     def serialized_binary_event_data
-      @event_data ||= File.open(File.expand_path("../serialized_binary_event_data.txt", __FILE__), 'rb') {|f| f.read}
+      @event_data ||= File.open(File.expand_path("../serialized_binary_event_data.txt", __FILE__), "rb") {|f| f.read}
       @event_data
     end
 
