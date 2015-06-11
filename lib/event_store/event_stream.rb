@@ -62,7 +62,7 @@ module EventStore
 
       rows = fully_qualified_names.inject([]) { |memo, name|
         memo + events.where(fully_qualified_name: name).where{ occurred_at < timestampz }
-                 .reverse_order(:occurred_at).limit(1).all
+                 .reverse_order(:occurred_at, :id).limit(1).all
       }.sort_by { |r| r[:occurred_at] }
 
       rows.map {|r| r[:serialized_event] = EventStore.unescape_bytea(r[:serialized_event]); r}
