@@ -368,24 +368,40 @@ describe EventStore::Client do
     end
 
     describe "#last_event_before" do
+      let(:serialized_event)  { "#{1002.to_s(2)}_foo" }
+      let(:serialized_event2) { "#{1002.to_s(2)}_foo2" }
       let(:oldest_event_time) { event_time + 1 }
       let(:middle_event_time) { event_time + 2 }
       let(:newest_event_time) { event_time + 3 }
-      let(:other_event)       { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "fqn2", "other", "#{1002.to_s(2)}_foo") }
-      let(:event)             { EventStore::Event.new(AGGREGATE_ID_ONE, (oldest_event_time).utc, "fqn1", "event", "#{1002.to_s(2)}_foo") }
-      let(:new_event)         { EventStore::Event.new(AGGREGATE_ID_ONE, (middle_event_time).utc, "fqn1", "new", "#{1002.to_s(2)}_foo") }
-      let(:newest_event)      { EventStore::Event.new(AGGREGATE_ID_ONE, (newest_event_time).utc, "fqn1", "newest", "#{1002.to_s(2)}_foo") }
+      let(:other_event)       { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "fqn2", "other",   serialized_event) }
+      let(:another_event)     { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "fqn2", "another", serialized_event2) }
+      let(:event)             { EventStore::Event.new(AGGREGATE_ID_ONE, (oldest_event_time).utc, "fqn1", "event",   serialized_event) }
+      let(:new_event)         { EventStore::Event.new(AGGREGATE_ID_ONE, (middle_event_time).utc, "fqn1", "new",     serialized_event) }
+      let(:newest_event)      { EventStore::Event.new(AGGREGATE_ID_ONE, (newest_event_time).utc, "fqn1", "newest",  serialized_event) }
       let(:fqns)              { %W(fqn1 fqn2) }
+      let(:events) { [other_event, event, new_event, newest_event] }
+
 
       subject(:client) { es_client.new(AGGREGATE_ID_ONE, :device) }
 
       before do
-        client.append([other_event, event, new_event, newest_event])
+        client.append(events)
       end
 
       it "returns the latest event before the given time" do
         last_events = client.last_event_before(newest_event_time, fqns)
         expect(last_events.map{ |e| e.occurred_at.to_i}).to eq([other_event[:occurred_at].to_i, new_event[:occurred_at].to_i])
+      end
+
+      context "with two prior events at the same time" do
+        let(:events) { [other_event, another_event, event, new_event, newest_event] }
+        let(:fqns)   { %W(fqn2) }
+
+        it "returns the event with the largest id" do
+          last_events = client.last_event_before(event_time + 1, fqns)
+
+          expect(last_events.last.serialized_event).to eq(serialized_event2)
+        end
       end
     end
   end
