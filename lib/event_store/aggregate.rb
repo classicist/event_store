@@ -42,9 +42,11 @@ module EventStore
       @event_stream = EventStream.new(self)
     end
 
-    def append(events)
-      event_stream.append(events) do |prepared_events|
-        snapshot.store_snapshot(prepared_events)
+    def append(events, logger)
+      logger.debug { "EventStore#append, appending to event stream" }
+      event_stream.append(events, logger) do |prepared_events|
+        logger.debug { "EventStore#append, storing snapshot" }
+        snapshot.store_snapshot(prepared_events, logger)
       end
     end
 

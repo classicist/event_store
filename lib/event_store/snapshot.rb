@@ -72,18 +72,25 @@ module EventStore
       EventStore.redis.del [snapshot_table, snapshot_event_id_table]
     end
 
-    def store_snapshot(prepared_events)
+    def store_snapshot(prepared_events, logger=default_logger)
       valid_snapshot_events = []
       valid_snapshot_event_ids = []
 
       prepared_events.each do |event_hash|
-        if event_hash[:id].to_i > current_event_id_numbers[snapshot_key(event_hash)].to_i
+        key = snapshot_key(event_hash)
+        current_id = current_event_id_numbers[key].to_i
+
+        logger.debug { "Snapshot#store_snapshot: snapshot_key: #{key} prepared id: #{event_hash[:id]}, current id: #{current_id}" }
+        if event_hash[:id].to_i > current_id
+          logger.debug { "prepared event is newer, storing" }
           valid_snapshot_events    += snapshot_event(event_hash)
           valid_snapshot_event_ids += snapshot_event_id(event_hash)
         end
       end
 
+      logger.debug { "valid_snapshot_event_ids: #{valid_snapshot_event_ids.inspect}" }
       unless valid_snapshot_event_ids.empty?
+        logger.debug { "there are valid_snapshot_event_ids, persisting to redis" }
         valid_snapshot_event_ids += [:current_event_id, valid_snapshot_event_ids.last.to_i]
 
         @redis.multi do

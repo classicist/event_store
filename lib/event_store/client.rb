@@ -32,7 +32,7 @@ module EventStore
 
     def append(event_data, logger=default_logger)
       logger.debug("Start Appending #{event_data} to #{id}")
-      aggregate.append(event_data)
+      aggregate.append(event_data, logger)
       logger.debug("Done Appending #{event_data} to #{id}")
       yield(event_data) if block_given?
       nil

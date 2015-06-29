@@ -13,7 +13,7 @@ module EventStore
       @names_table = EventStore.fully_qualified_names_table
     end
 
-    def append(raw_events)
+    def append(raw_events, logger)
       prepared_events = raw_events.map do |raw_event|
         event = prepare_event(raw_event)
         ensure_all_attributes_have_values!(event)
@@ -30,6 +30,8 @@ module EventStore
           fully_qualified_names.insert(fully_qualified_name: event[:fully_qualified_name])
           id = event_table.insert(event_hash)
         end
+
+        logger.debug { "EventStream#append, setting id #{id} for #{event_hash.inspect}" }
 
         event[:id] = id
       end
