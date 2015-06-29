@@ -43,9 +43,9 @@ module EventStore
     end
 
     def append(events, logger)
-      logger.debug { "EventStore#append, appending to event stream" }
+      logger.debug("EventStore#append, appending to event stream")
       event_stream.append(events, logger) do |prepared_events|
-        logger.debug { "EventStore#append, storing snapshot" }
+        logger.debug("EventStore#append, storing snapshot")
         snapshot.store_snapshot(prepared_events, logger)
       end
     end

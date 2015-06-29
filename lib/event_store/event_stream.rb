@@ -31,7 +31,7 @@ module EventStore
           id = event_table.insert(event_hash)
         end
 
-        logger.debug { "EventStream#append, setting id #{id} for #{event_hash.inspect}" }
+        logger.debug("EventStream#append, setting id #{id} for #{event_hash.inspect}")
 
         event[:id] = id
       end
