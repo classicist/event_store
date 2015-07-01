@@ -3,11 +3,20 @@ require "mock_redis"
 
 module EventStore
   describe Snapshot do
-    let(:redis)          { EventStore.redis }
-    let(:aggregate_type) { "awesome" }
-    let(:aggregate_id)   { "superman" }
-    let(:events)         { [] }
-    let(:aggregate)      { double("Aggregate", type: aggregate_type, id: aggregate_id, events: double(all: events)) }
+    let(:redis)            { EventStore.redis }
+    let(:aggregate_type)   { "awesome" }
+    let(:aggregate_id)     { "superman" }
+    let(:events)           { [] }
+    let(:snapshot_events)  { events }
+    let(:checkpoint_event) { nil }
+    let(:aggregate)        {
+      double("Aggregate",
+             type: aggregate_type,
+             id: aggregate_id,
+             events: double(all: events),
+             checkpoint_event: checkpoint_event,
+             snapshot_events: double(all: snapshot_events))
+    }
 
     subject(:snapshot)   { EventStore::Snapshot.new(aggregate) }
 
@@ -71,6 +80,19 @@ module EventStore
           # TODO: remove #snapshot in favor of Enumerable
           names = snapshot.map(&:fully_qualified_name)
           expect(names).to eq(events.map { |e| e[:fully_qualified_name] })
+        end
+
+        context "with a checkpoint event" do
+          let(:snapshot_events){ [ last_event ] }
+          let(:checkpoint_event) { "the_big_event" }
+
+          it "stores a a new snapshot from the aggregate's events" do
+            snapshot.rebuild_snapshot!
+            expect(snapshot.count).to eq(1)
+            # TODO: remove #snapshot in favor of Enumerable
+            names = snapshot.map(&:fully_qualified_name)
+            expect(names).to eq(snapshot_events.map { |e| e[:fully_qualified_name] })
+          end
         end
       end
 

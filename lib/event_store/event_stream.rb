@@ -2,11 +2,12 @@ module EventStore
   class EventStream
     include Enumerable
 
-    attr_reader :event_table
+    attr_reader :event_table, :checkpoint_event
 
     def initialize aggregate
       @aggregate = aggregate
       @id = @aggregate.id
+      @checkpoint_event = aggregate.checkpoint_event
       @event_table_alias = "events"
       @event_table = "#{EventStore.schema}__#{EventStore.table_name}".to_sym
       @aliased_event_table = "#{event_table}___#{@event_table_alias}".to_sym
@@ -49,6 +50,16 @@ module EventStore
                           .join(@names_table, id: :fully_qualified_name_id) \
                           .order("#{@event_table_alias}__id".to_sym)        \
                           .select_all(:events).select_append(:fully_qualified_name)
+    end
+
+    def snapshot_events
+      last_checkpoint = last_event_before(Time.now.utc, [checkpoint_event]).first if checkpoint_event
+
+      if last_checkpoint
+        events.where{ events__id >= last_checkpoint[:id].to_i }
+      else
+        events
+      end
     end
 
     def events_from(event_id, max = nil)
