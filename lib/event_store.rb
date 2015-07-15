@@ -60,6 +60,21 @@ module EventStore
     @schema ||= raw_db_config[@environment][@adapter]['schema']
   end
 
+  def self.insert_table_name(date)
+    return fully_qualified_table unless partitioning?
+
+    partition_name = date.strftime("#{table_name}#{table_name_suffix}")
+    qualified_table_name(partition_name)
+  end
+
+  def self.partitioning?
+    raw_db_config["partitioning"]
+  end
+
+  def self.table_name_suffix
+    raw_db_config["table_name_suffix"]
+  end
+
   def self.table_name
     @table_name ||= raw_db_config['table_name']
   end
@@ -69,7 +84,11 @@ module EventStore
   end
 
   def self.fully_qualified_table
-    @fully_qualified_table ||= Sequel.lit "#{schema}.#{table_name}"
+    @fully_qualified_table ||= qualified_table_name
+  end
+
+  def self.qualified_table_name(name = table_name)
+    Sequel.lit "#{schema}.#{name}"
   end
 
   def self.fully_qualified_names_table

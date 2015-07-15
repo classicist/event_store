@@ -267,21 +267,21 @@ describe EventStore::Client do
             client.append([old_event])
           end
 
-          it "should append a single event of a new type without raising an error" do
+          it "appends a single event of a new type without raising an error" do
             initial_count = client.count
             events = [new_event]
             client.append(events)
             expect(client.count).to eq(initial_count + events.length)
           end
 
-          it "should append multiple events of a new type without raising and error" do
+          it "appends multiple events of a new type without raising and error" do
             initial_count = client.count
             events = [new_event, new_event]
             client.append(events)
             expect(client.count).to eq(initial_count + events.length)
           end
 
-          it "should change the event id number" do
+          it "changes the event id number" do
             events = [new_event, really_new_event]
             expect{ client.append(events) }.to change(client, :event_id)
           end
@@ -293,7 +293,7 @@ describe EventStore::Client do
             expect(client.snapshot.event_id).to eq(client.raw_event_stream.last[:id])
           end
 
-          it "should write-through-cache the event in a snapshot without duplicating events" do
+          it "writes through cache the event in a snapshot without duplicating events" do
             client.destroy!
             client.append([old_event, new_event, new_event])
             expected = []
@@ -302,7 +302,7 @@ describe EventStore::Client do
             expect(client.snapshot.to_a).to eq(expected)
           end
 
-          it "should raise a meaningful exception when a nil event given to it to append" do
+          it "raises a meaningful exception when a nil event given to it to append" do
             expect {client.append([nil])}.to raise_exception(ArgumentError)
           end
         end
@@ -312,12 +312,12 @@ describe EventStore::Client do
             client.append([old_event])
           end
 
-          it "should not raise an error when two events of the same type are appended" do
+          it "does not raise an error when two events of the same type are appended" do
             client.append([duplicate_event])
             client.append([duplicate_event]) #will fail automatically if it throws an error, no need for assertions (which now print warning for some reason)
           end
 
-          it "should write-through-cache the event in a snapshot without duplicating events" do
+          it "writes-through-cache the event in a snapshot without duplicating events" do
             client.destroy!
             client.append([old_event, new_event, new_event])
             expected = []
@@ -341,7 +341,7 @@ describe EventStore::Client do
           @bad_event.fully_qualified_name = nil
         end
 
-        it "should revert all append events if one fails" do
+        it "reverts all append events if one fails" do
           starting_count = client.count
           expect { client.append([new_event, @bad_event]) }.to raise_error(EventStore::AttributeMissingError)
           expect(client.count).to eq(starting_count)
@@ -353,13 +353,13 @@ describe EventStore::Client do
           expect(x).to eq(0)
         end
 
-        it "yield to the block after event creation" do
+        it "yields to the block after event creation" do
           x = 0
           client.append([]) { x += 1 }
           expect(x).to eq(1)
         end
 
-        it "should pass the raw event_data to the block" do
+        it "passes the raw event_data to the block" do
           client.append([new_event]) do |raw_event_data|
             expect(raw_event_data).to eq([new_event])
           end
