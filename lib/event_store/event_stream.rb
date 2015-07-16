@@ -21,9 +21,9 @@ module EventStore
         event
       end
 
-      event_table = EventStore.db.from(@event_table)
       prepared_events.each do |event|
         event_hash = event.dup.reject! { |k,v| k == :fully_qualified_name }
+        event_table = insert_table(event_hash[:occurred_at])
 
         begin
           id = event_table.insert(event_hash)
@@ -38,6 +38,14 @@ module EventStore
       end
 
       yield(prepared_events) if block_given?
+    end
+
+    def insert_table(occurred_at)
+      EventStore.db.from(insert_table_name(occurred_at))
+    end
+
+    def insert_table_name(date)
+      EventStore.insert_table_name(date)
     end
 
     def fully_qualified_names
