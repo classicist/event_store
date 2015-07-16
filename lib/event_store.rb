@@ -63,7 +63,7 @@ module EventStore
   def self.insert_table_name(date)
     return fully_qualified_table unless partitioning?
 
-    partition_name = date.strftime("#{table_name}#{table_name_suffix}")
+    partition_name = date.strftime("#{table_name}#{partition_name_suffix}")
     qualified_table_name(partition_name)
   end
 
@@ -71,8 +71,8 @@ module EventStore
     @db_config["partitioning"]
   end
 
-  def self.table_name_suffix
-    @db_config["table_name_suffix"]
+  def self.partition_name_suffix
+    @db_config["partition_name_suffix"]
   end
 
   def self.table_name

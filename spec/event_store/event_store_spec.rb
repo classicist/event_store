@@ -13,10 +13,10 @@ describe EventStore do
     end
 
     context "with partitioning defined" do
-      let(:expected) { "es_test.test_events_1955_01_31" }
-      let(:part_config) { { "schema" => "es_test", "table_name_suffix" => "_%Y_%m_%d", "partitioning" => true } }
+      let(:expected)         { "es_test.test_events_1955_01_31" }
+      let(:partition_config) { { "schema" => "es_test", "partition_name_suffix" => "_%Y_%m_%d", "partitioning" => true } }
 
-      before { subject.custom_config(part_config, subject.local_redis_config, "test_events", "test") }
+      before { subject.custom_config(partition_config, subject.local_redis_config, "test_events", "test") }
       after  { subject.custom_config(subject.raw_db_config["test"]["postgres"], subject.local_redis_config, "test_events", "test") }
 
       it "returns a properly formatted table name" do
