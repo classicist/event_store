@@ -68,11 +68,11 @@ module EventStore
   end
 
   def self.partitioning?
-    raw_db_config["partitioning"]
+    @db_config["partitioning"]
   end
 
   def self.table_name_suffix
-    raw_db_config["table_name_suffix"]
+    @db_config["table_name_suffix"]
   end
 
   def self.table_name
