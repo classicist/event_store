@@ -44,11 +44,14 @@ module EventStore
     end
 
     def events
-      @events_query ||= EventStore.db.from(@aliased_event_table)            \
-                          .where(:aggregate_id => @id.to_s)                 \
-                          .join(@names_table, id: :fully_qualified_name_id) \
-                          .order("#{@event_table_alias}__id".to_sym)        \
-                          .select_all(:events).select_append(:fully_qualified_name)
+      @events_query ||=
+        begin
+          query = EventStore.db.from(@aliased_event_table).where(:aggregate_id => @id.to_s)
+          query = query.join(@names_table, id: :fully_qualified_name_id) if EventStore.use_names_table?
+          query = query.order("#{@event_table_alias}__id".to_sym).select_all(:events)
+          query = query.select_append(:fully_qualified_name) if EventStore.use_names_table?
+          query
+        end
     end
 
     def events_from(event_id, max = nil)
@@ -102,9 +105,13 @@ module EventStore
       { :aggregate_id            => raw_event.aggregate_id,
         :occurred_at             => Time.parse(raw_event.occurred_at.to_s).utc, #to_s truncates microseconds, which brake Time equality
         :serialized_event        => EventStore.escape_bytea(raw_event.serialized_event),
-        :fully_qualified_name_id => EventStore.db.from(@names_table).where(fully_qualified_name: raw_event.fully_qualified_name).select(:id),
         :fully_qualified_name    => raw_event.fully_qualified_name,
         :sub_key                 => raw_event.sub_key
+      }.tap { |event_info|
+        if EventStore.use_names_table?
+          name_subquery = EventStore.db.from(@names_table).where(fully_qualified_name: raw_event.fully_qualified_name).select(:id)
+          event_info[:fully_qualified_name_id] = name_subquery
+        end
       }
     end
 

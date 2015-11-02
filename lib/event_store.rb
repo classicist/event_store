@@ -124,12 +124,17 @@ module EventStore
     database_config = database_config.inject({}) {|memo, (k,v)| memo[k.to_s] = v; memo}
     redis_config    = redis_config.inject({}) {|memo, (k,v)| memo[k.to_s] = v; memo}
 
-    @adapter        = database_config['adapter'].to_s
+    @adapter        = database_config["adapter"].to_s
     @environment    = environment
     @db_config      = database_config
     @table_name     = table_name
-    @schema         = database_config['schema'].to_s
+    @schema         = database_config["schema"].to_s
+    @use_names_table = database_config.fetch("use_names_table", true)
     connect_db
+  end
+
+  def self.use_names_table?
+    @use_names_table
   end
 
   def self.migrations_dir
