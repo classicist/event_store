@@ -28,11 +28,11 @@ module EventStore
     end
 
     def self.count
-      EventStore.db.from( EventStore.fully_qualified_table).distinct(:aggregate_id).count
+      EventStore.db.from(EventStore.fully_qualified_table).select(:aggregate_id).distinct.count
     end
 
     def self.ids(offset, limit)
-      EventStore.db.from( EventStore.fully_qualified_table).distinct(:aggregate_id).select(:aggregate_id).order(:aggregate_id).limit(limit, offset).all.map{|item| item[:aggregate_id]}
+      EventStore.db.from(EventStore.fully_qualified_table).select(:aggregate_id).distinct.order(:aggregate_id).limit(limit, offset).all.map{|item| item[:aggregate_id]}
     end
 
     def initialize(id, type = EventStore.table_name, checkpoint_event = nil)
