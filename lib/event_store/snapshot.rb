@@ -58,7 +58,8 @@ module EventStore
       delete_snapshot!
       logger.debug { "Deleting snapshot took #{Time.now - t} seconds" }
       t = Time.now
-      all_events = @aggregate.events.all
+      all_events = @aggregate.snapshot_events.all
+      logger.debug { "getting #{all_events.count} events" }
       logger.debug { "getting all events took #{Time.now - t} seconds" }
       t = Time.now
       corrected_events = all_events.map{|e| e[:occurred_at] = TimeHacker.translate_occurred_at_from_local_to_gmt(e[:occurred_at]); e}

@@ -2,11 +2,12 @@ module EventStore
   class EventStream
     include Enumerable
 
-    attr_reader :event_table
+    attr_reader :event_table, :checkpoint_event
 
     def initialize aggregate
       @aggregate = aggregate
       @id = @aggregate.id
+      @checkpoint_event = aggregate.checkpoint_event
       @event_table_alias = "events"
       @event_table = "#{EventStore.schema}__#{EventStore.table_name}".to_sym
       @aliased_event_table = "#{event_table}___#{@event_table_alias}".to_sym
@@ -20,9 +21,9 @@ module EventStore
         event
       end
 
-      event_table = EventStore.db.from(@event_table)
       prepared_events.each do |event|
         event_hash = event.dup.reject! { |k,v| k == :fully_qualified_name }
+        event_table = insert_table(event_hash[:occurred_at])
 
         begin
           id = event_table.insert(event_hash)
@@ -39,6 +40,14 @@ module EventStore
       yield(prepared_events) if block_given?
     end
 
+    def insert_table(occurred_at)
+      EventStore.db.from(insert_table_name(occurred_at))
+    end
+
+    def insert_table_name(date)
+      EventStore.insert_table_name(date)
+    end
+
     def fully_qualified_names
       @fully_qualified_name_query ||= EventStore.db.from(@names_table)
     end
@@ -52,6 +61,16 @@ module EventStore
           query = query.select_append(:fully_qualified_name) if EventStore.use_names_table?
           query
         end
+    end
+
+    def snapshot_events
+      last_checkpoint = last_event_before(Time.now.utc, [checkpoint_event]).first if checkpoint_event
+
+      if last_checkpoint
+        events.where{ events__id >= last_checkpoint[:id].to_i }
+      else
+        events
+      end
     end
 
     def events_from(event_id, max = nil)
