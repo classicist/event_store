@@ -135,6 +135,7 @@ module EventStore
   end
 
   def self.unescape_bytea(binary_string)
+    binary_string = [binary_string[1..-1]].pack("H*") if binary_string[0] == "x"
     [binary_string].pack("H*")
   end
 

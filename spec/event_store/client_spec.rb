@@ -108,7 +108,7 @@ describe EventStore::Client do
           client = es_client.new("any_device", :device)
           serialized_event = serialized_event_data_terminated_by_null
           event = EventStore::Event.new("any_device", @event_time, "terminated_by_null_event", "zone_number", serialized_event)
-          retval = client.append([event])
+          client.append([event])
           hex_from_db = EventStore.db.from(EventStore.fully_qualified_table).order(:id).last[:serialized_event]
 
           expect(hex_from_db).to eql(EventStore.escape_bytea(serialized_event))
@@ -196,7 +196,7 @@ describe EventStore::Client do
         expect(subject.event_stream_between(start_time, end_time).length).to eq(1)
       end
 
-      it "returns unencodes the serialized_event fields out of the database encoding" do
+      it "unencodes the serialized_event fields out of the database encoding" do
         expect(EventStore).to receive(:unescape_bytea).once
         start_time = @oldest_event_time
         end_time   = @oldest_event_time
