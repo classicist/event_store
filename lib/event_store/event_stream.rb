@@ -23,7 +23,7 @@ module EventStore
 
       prepared_events.each do |event|
         event_hash = event.dup.reject! { |k,v| k == :fully_qualified_name }
-        event_table = insert_table(event_hash[:occurred_at])
+        event_table = insert_table(Time.now)
 
         begin
           id = event_table.insert(event_hash)
@@ -122,7 +122,7 @@ module EventStore
     def prepare_event(raw_event)
       raise ArgumentError.new("Cannot Append a Nil Event") unless raw_event
       { :aggregate_id            => raw_event.aggregate_id,
-        :occurred_at             => Time.parse(raw_event.occurred_at.to_s).utc, #to_s truncates microseconds, which brake Time equality
+        :occurred_at             => Time.parse(raw_event.occurred_at.to_s).utc, #to_s truncates microseconds, which breaks Time equality
         :serialized_event        => EventStore.escape_bytea(raw_event.serialized_event),
         :fully_qualified_name    => raw_event.fully_qualified_name,
         :sub_key                 => raw_event.sub_key
