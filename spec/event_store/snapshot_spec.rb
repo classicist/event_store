@@ -36,6 +36,36 @@ module EventStore
         end
       end
 
+      describe "#update_fqns!" do
+        let(:original_events)  { client.snapshot.to_a }
+
+        it "replaces fully qualified names in the snapshot with the value of a block" do
+          client.snapshot.update_fqns! { |fqn|
+            fqn =~ /^(e[0-9])/ ? fqn.upcase : fqn
+          }
+
+          expected_snapshot_events = original_events.map { |serialized_event| serialized_event.fully_qualified_name.upcase }
+          expect(client.snapshot.map(&:fully_qualified_name).to_set).to eq(expected_snapshot_events.to_set)
+        end
+
+        it "does not affect the current event id" do
+          old_event_id = client.snapshot.event_id
+
+          client.snapshot.update_fqns! { |fqn| fqn.upcase }
+
+          new_event_id = client.snapshot.event_id
+
+          expect(new_event_id).to eq(old_event_id)
+        end
+
+        it "doesn't affect the fully qualified name when the block returns nil" do
+          old_fqns = original_events.map(&:fully_qualified_name)
+          client.snapshot.update_fqns! { |_fqn| nil }
+
+          expect(client.snapshot.map(&:fully_qualified_name).to_set).to eq(old_fqns.to_set)
+        end
+      end
+
       it "rebuilds a snapshot after it is deleted" do
         snapshot = client.snapshot
         client.delete_snapshot!

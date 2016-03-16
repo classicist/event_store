@@ -29,14 +29,14 @@ module EventStore
       event_id(snapshot_key(fully_qualified_name: fully_qualified_name, sub_key: sub_key))
     end
 
-    def count(logger=default_logger)
-      auto_rebuild_snapshot(read_raw_snapshot(logger), logger).count
+    def count(logger = default_logger)
+      read_with_rebuild(logger).count
     end
 
     def each(logger=default_logger)
       logger.info { "#{self.class.name}#each for #{@aggregate.id}" }
       t = Time.now
-      events_hash = auto_rebuild_snapshot(read_raw_snapshot(logger), logger)
+      events_hash = read_with_rebuild(logger)
       logger.debug { "#{self.class.name}#auto_rebuild_snapshot took #{Time.now - t} seconds for #{@aggregate.id}" }
 
       t = Time.now
@@ -90,18 +90,47 @@ module EventStore
       end
 
       logger.debug("valid_snapshot_event_ids: #{valid_snapshot_event_ids.inspect}")
-      unless valid_snapshot_event_ids.empty?
+      if valid_snapshot_event_ids.any?
         logger.debug("there are valid_snapshot_event_ids, persisting to redis")
         valid_snapshot_event_ids += [:current_event_id, valid_snapshot_event_ids.last.to_i]
 
-        @redis.multi do
-          @redis.hmset(snapshot_event_id_table, valid_snapshot_event_ids)
-          @redis.hmset(snapshot_table, valid_snapshot_events)
-        end
+        update_snapshot_tables(valid_snapshot_event_ids, valid_snapshot_events)
       end
     end
 
+    def update_fqns!(logger = default_logger)
+      updated_events    = replace_fqns_in_snapshot_hash(read_with_rebuild(logger)) { |fqn| yield fqn }
+      updated_event_ids = replace_fqns_in_snapshot_hash(current_event_id_numbers)  { |fqn|
+        fqn == 'current_event_id' ? fqn : (yield fqn)
+      }
+
+      update_snapshot_tables(updated_event_ids, updated_events, replace: true)
+    end
+
   private
+
+    def replace_fqns_in_snapshot_hash(snapshot_keyed_hash)
+      snapshot_keyed_hash.inject([]) { |memo, (snapshot_key, value)|
+        new_key = replace_fqn_in_snapshot_key(snapshot_key) { |fqn| yield fqn }
+        memo + [new_key, value]
+      }
+    end
+
+    def replace_fqn_in_snapshot_key(key)
+      fqn, sub_key = key.split(EventStore::SNAPSHOT_KEY_DELIMITER)
+      new_fqn = (yield fqn) || fqn
+      [new_fqn, sub_key].compact.join(EventStore::SNAPSHOT_KEY_DELIMITER)
+    end
+
+    # params are flattened hashes, i.e., [key1, val1, key2, val2, ...]
+    def update_snapshot_tables(event_ids_array, events_array, replace: false)
+      @redis.multi do
+        @redis.del snapshot_event_id_table if replace
+        @redis.hmset(snapshot_event_id_table, event_ids_array)
+        @redis.del snapshot_table if replace
+        @redis.hmset(snapshot_table, events_array)
+      end
+    end
 
     def default_logger
       Logger.new('/dev/null')
@@ -154,6 +183,10 @@ module EventStore
       # so there are events in the ES but there is no redis snapshot
       rebuild_snapshot!(logger)
       events_hash = read_raw_snapshot(logger)
+    end
+
+    def read_with_rebuild(logger = default_logger)
+      auto_rebuild_snapshot(read_raw_snapshot(logger), logger)
     end
   end
 end
