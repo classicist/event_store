@@ -102,6 +102,7 @@ module EventStore
   def self.clear!
     return unless connected?
     EventStore.db.from(fully_qualified_table).delete
+    EventStore.db.from(fully_qualified_names_table).delete
     EventStore.redis.flushdb
   end
 
