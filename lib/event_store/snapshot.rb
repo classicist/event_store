@@ -41,12 +41,7 @@ module EventStore
 
       t = Time.now
       result_hash = events_hash.inject([]) do |snapshot, (key, value)|
-        fully_qualified_name, _ = key.split(EventStore::SNAPSHOT_KEY_DELIMITER)
-        raw_event               = value.split(EventStore::SNAPSHOT_DELIMITER)
-        event_id                = raw_event.first.to_i
-        serialized_event        = EventStore.unescape_bytea(raw_event[1])
-        occurred_at             = Time.parse(raw_event.last)
-        snapshot + [SerializedEvent.new(fully_qualified_name, serialized_event, event_id, occurred_at)]
+        snapshot + [serialized_event_from_snapshot_event(key, value)]
       end
       logger.debug { "#{self.class.name} serializing events took #{Time.now - t} seconds" }
       result_hash.sort_by(&:event_id).each { |e| yield e }
@@ -99,15 +94,46 @@ module EventStore
     end
 
     def update_fqns!(logger = default_logger)
-      updated_events    = replace_fqns_in_snapshot_hash(read_with_rebuild(logger)) { |fqn| yield fqn }
+      logger.debug { "Replacing FQNs in snapshot events" }
+      updated_events = replace_fqns_in_snapshot_hash(read_with_rebuild(logger)) { |fqn| yield fqn }
+
+      logger.debug { "Replacing FQNs in snapshot event ids" }
       updated_event_ids = replace_fqns_in_snapshot_hash(current_event_id_numbers)  { |fqn|
         fqn == 'current_event_id' ? fqn : (yield fqn)
       }
 
-      update_snapshot_tables(updated_event_ids, updated_events, replace: true)
+      logger.debug "Updating snapshot tables in redis"
+      replace_snapshot_tables(updated_event_ids, updated_events)
+    end
+
+    def reject!(logger = default_logger)
+      events_to_keep = read_with_rebuild(logger)
+      event_ids = current_event_id_numbers
+
+      events_to_keep.dup.each { |snapshot_key, snapshot_event|
+        serialized_event = serialized_event_from_snapshot_event(snapshot_key, snapshot_event)
+        drop_it = yield serialized_event
+
+        if drop_it
+          events_to_keep.delete(snapshot_key)
+          event_ids.delete(snapshot_key)
+        end
+      }
+
+      replace_snapshot_tables(event_ids.flatten, events_to_keep.flatten)
     end
 
   private
+
+    def serialized_event_from_snapshot_event(snapshot_key, snapshot_value)
+      fully_qualified_name, _ = snapshot_key.split(EventStore::SNAPSHOT_KEY_DELIMITER)
+      raw_event               = snapshot_value.split(EventStore::SNAPSHOT_DELIMITER)
+      event_id                = raw_event.first.to_i
+      serialized_event        = EventStore.unescape_bytea(raw_event[1])
+      occurred_at             = Time.parse(raw_event.last)
+
+      SerializedEvent.new(fully_qualified_name, serialized_event, event_id, occurred_at)
+    end
 
     def replace_fqns_in_snapshot_hash(snapshot_keyed_hash)
       snapshot_keyed_hash.inject([]) { |memo, (snapshot_key, value)|
@@ -122,14 +148,19 @@ module EventStore
       [new_fqn, sub_key].compact.join(EventStore::SNAPSHOT_KEY_DELIMITER)
     end
 
-    # params are flattened hashes, i.e., [key1, val1, key2, val2, ...]
-    def update_snapshot_tables(event_ids_array, events_array, replace: false)
+    def replace_snapshot_tables(event_ids_array, events_array)
       @redis.multi do
-        @redis.del snapshot_event_id_table if replace
-        @redis.hmset(snapshot_event_id_table, event_ids_array)
-        @redis.del snapshot_table if replace
-        @redis.hmset(snapshot_table, events_array)
+        delete_snapshot!
+        update_snapshot_tables(event_ids_array, events_array)
       end
+    end
+
+    # params are flattened hashes, i.e., [key1, val1, key2, val2, ...]
+    def update_snapshot_tables(event_ids_array, events_array)
+      return unless events_array.any?
+
+      @redis.hmset(snapshot_event_id_table, event_ids_array)
+      @redis.hmset(snapshot_table, events_array)
     end
 
     def default_logger
