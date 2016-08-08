@@ -373,11 +373,11 @@ describe EventStore::Client do
       let(:oldest_event_time) { event_time + 1 }
       let(:middle_event_time) { event_time + 2 }
       let(:newest_event_time) { event_time + 3 }
-      let(:other_event)       { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "fqn2", "other",   serialized_event) }
-      let(:another_event)     { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "fqn2", "another", serialized_event2) }
-      let(:event)             { EventStore::Event.new(AGGREGATE_ID_ONE, (oldest_event_time).utc, "fqn1", "event",   serialized_event) }
-      let(:new_event)         { EventStore::Event.new(AGGREGATE_ID_ONE, (middle_event_time).utc, "fqn1", "new",     serialized_event) }
-      let(:newest_event)      { EventStore::Event.new(AGGREGATE_ID_ONE, (newest_event_time).utc, "fqn1", "newest",  serialized_event) }
+      let(:other_event)       { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "fqn2", "sub_key2", serialized_event) }
+      let(:another_event)     { EventStore::Event.new(AGGREGATE_ID_ONE, (event_time).utc,        "fqn2", "sub_key2", serialized_event2) }
+      let(:event)             { EventStore::Event.new(AGGREGATE_ID_ONE, (oldest_event_time).utc, "fqn1", "sub_key",  serialized_event) }
+      let(:new_event)         { EventStore::Event.new(AGGREGATE_ID_ONE, (middle_event_time).utc, "fqn1", "sub_key",  serialized_event) }
+      let(:newest_event)      { EventStore::Event.new(AGGREGATE_ID_ONE, (newest_event_time).utc, "fqn1", "sub_key",  serialized_event) }
       let(:fqns)              { %W(fqn1 fqn2) }
       let(:events) { [other_event, event, new_event, newest_event] }
 

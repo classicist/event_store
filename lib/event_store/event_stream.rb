@@ -81,7 +81,45 @@ module EventStore
       end
     end
 
+    # Private: returns the last event before start_time for each of the events named
+    #         by fully_qualified_names.
+    #
+    # Generates queries that look like this:
+    #
+    #     SELECT events.*, fully_qualified_name
+    #       FROM event_store.thermostat_events "events"
+    # INNER JOIN event_store.fully_qualified_names fqn ON fqn.id = fully_qualified_name_id
+    #      WHERE events.id IN (SELECT max(events.id) from event_store.thermostat_events "events"
+    #                      INNER JOIN event_store.fully_qualified_names fqn ON fqn.id = fully_qualified_name_id
+    #                           WHERE occurred_at < '2016-08-08 06:00:00'
+    #                             AND fully_qualified_name = 'faceplate_api.system.core.events.HeatingStageStarted'
+    #                        GROUP BY sub_key);
+    #
     def last_event_before(start_time, fully_qualified_names = [])
+      timestampz = start_time.strftime("%Y-%m-%d %H:%M:%S%z")
+
+      rows = fully_qualified_names.inject([]) { |memo, name|
+        memo + events.where(events__id: events.where(fully_qualified_name: name).where { occurred_at < timestampz }
+                 .select { max(:events__id) }.unordered.group(:sub_key)).all
+      }.sort_by { |r| r[:occurred_at] }
+
+      rows.map {|r| r[:serialized_event] = EventStore.unescape_bytea(r[:serialized_event]); r}
+    end
+
+    # Private: returns the last event before start_time for each of the events named
+    #          by fully_qualified_names. Doesn't work when events have multiple valid
+    #          sub_keys, but is fast when they don't.
+    #
+    # Generates queries that look like this:
+    #
+    #     SELECT events.*, fully_qualified_name
+    #       FROM event_store.thermostat_events "events"
+    # INNER JOIN event_store.fully_qualified_names fqn ON fqn.id = fully_qualified_name_id
+    #      WHERE occurred_at < '2016-08-08 06:00:00'
+    #        AND fully_qualified_name = 'faceplate_api.system.core.events.HeatingStageStarted'
+    #   ORDER BY occurred_at DESC LIMIT 1;
+    #
+    def simple_last_event_before(start_time, fully_qualified_names = [])
       timestampz = start_time.strftime("%Y-%m-%d %H:%M:%S%z")
 
       rows = fully_qualified_names.inject([]) { |memo, name|
