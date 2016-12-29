@@ -22,8 +22,9 @@ module EventStore
       Aggregate.ids(offset, limit)
     end
 
-    def initialize(aggregate_id, aggregate_type = EventStore.table_name, checkpoint_event = nil)
-      @aggregate = Aggregate.new(aggregate_id, aggregate_type, checkpoint_event)
+    def initialize(aggregate_id, aggregate_type = EventStore.table_name, checkpoint_events = [])
+      checkpoint_events = [checkpoint_events].flatten
+      @aggregate = Aggregate.new(aggregate_id, aggregate_type, checkpoint_events)
     end
 
     def exists?

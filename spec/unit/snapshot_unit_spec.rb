@@ -14,7 +14,7 @@ module EventStore
              type: aggregate_type,
              id: aggregate_id,
              events: double(all: events),
-             checkpoint_event: checkpoint_event,
+             checkpoint_events: [checkpoint_event],
              snapshot_events: double(all: snapshot_events))
     }
 
