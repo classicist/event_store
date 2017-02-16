@@ -4,7 +4,7 @@ module EventStore
   class Aggregate
     extend Forwardable
 
-    attr_reader :id, :type, :event_table, :snapshot, :event_stream, :checkpoint_event
+    attr_reader :id, :type, :event_table, :snapshot, :event_stream, :checkpoint_events
 
     def_delegators :snapshot,
       :last_event,
@@ -35,13 +35,13 @@ module EventStore
       EventStore.db.from(EventStore.fully_qualified_table).select(:aggregate_id).distinct.order(:aggregate_id).limit(limit, offset).all.map{|item| item[:aggregate_id]}
     end
 
-    def initialize(id, type = EventStore.table_name, checkpoint_event = nil)
+    def initialize(id, type = EventStore.table_name, checkpoint_events = [])
       @id = id
       @type = type
 
-      @checkpoint_event = checkpoint_event
-      @snapshot         = Snapshot.new(self)
-      @event_stream     = EventStream.new(self)
+      @checkpoint_events = checkpoint_events
+      @snapshot          = Snapshot.new(self)
+      @event_stream      = EventStream.new(self)
     end
 
     def append(events, logger)
