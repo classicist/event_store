@@ -56,7 +56,7 @@ describe EventStore::Client do
       end
 
       it "should be empty for aggregates without events" do
-        stream = es_client.new(100, :device).raw_event_stream
+        stream = es_client.new("100", :device).raw_event_stream
         expect(stream.empty?).to be_truthy
       end
 
@@ -80,7 +80,7 @@ describe EventStore::Client do
       end
 
       it "should be empty for aggregates without events" do
-        stream = es_client.new(100, :device).raw_event_stream
+        stream = es_client.new("100", :device).raw_event_stream
         expect(stream.empty?).to be_truthy
       end
 
@@ -115,6 +115,7 @@ describe EventStore::Client do
         end
       end
     end
+
 
     describe "#raw_event_streams_from_event_id" do
       subject { es_client.new(AGGREGATE_ID_ONE, :device) }
