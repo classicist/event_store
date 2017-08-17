@@ -52,7 +52,7 @@ module EventStore
 
   def self.redis_connect(config_hash)
     if config_hash["hosts"]
-      generic_config = config_hash["hosts"].reject { |k, _| k == "hosts" }
+      generic_config = config_hash.reject { |k, _| k == "hosts" }
       @redis = config_hash["hosts"].map { |hostname|
         Redis.new(generic_config.merge("host" => hostname))
       }
@@ -150,9 +150,10 @@ module EventStore
   end
 
   def self.custom_config(database_config, redis_config, table_name = 'events', environment = 'production')
-    self.redis_connect(redis_config)
     database_config = database_config.each_with_object({}) {|(k,v), memo| memo[k.to_s] = v}
     redis_config    = redis_config.each_with_object({}) {|(k,v), memo| memo[k.to_s] = v}
+
+    self.redis_connect(redis_config)
 
     @adapter         = database_config["adapter"].to_s
     @environment     = environment
