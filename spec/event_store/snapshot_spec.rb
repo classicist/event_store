@@ -6,13 +6,15 @@ AGGREGATE_ID_TWO = SecureRandom.uuid
 
 module EventStore
   describe "Snapshots" do
+    let(:redis)  { EventStore.redis("") }
+
     context "when there are no events" do
-      let(:client)    { EventStore::Client.new(AGGREGATE_ID_ONE) }
+      let(:client) { EventStore::Client.new(AGGREGATE_ID_ONE) }
 
       it "should build an empty snapshot for a new client" do
         expect(client.snapshot.any?).to eq(false)
         expect(client.event_id).to eq(-1)
-        expect(EventStore.redis.hget(client.snapshot_event_id_table, :current_event_id)).to eq(nil)
+        expect(redis.hget(client.snapshot_event_id_table, :current_event_id)).to eq(nil)
       end
 
       it "a client should rebuild a snapshot" do
@@ -104,8 +106,8 @@ module EventStore
           before(:each) { snapshot.reject! { true } }
 
           it "deletes the snapshot out of Redis" do
-            expect(EventStore.redis.keys(snapshot.snapshot_table).length).to eq(0)
-            expect(EventStore.redis.keys(snapshot.snapshot_event_id_table).length).to eq(0)
+            expect(redis.keys(snapshot.snapshot_table).length).to eq(0)
+            expect(redis.keys(snapshot.snapshot_event_id_table).length).to eq(0)
           end
         end
       end

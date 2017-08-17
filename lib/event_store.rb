@@ -12,6 +12,7 @@ require 'event_store/aggregate'
 require 'event_store/client'
 require 'event_store/errors'
 require 'yaml'
+require 'zlib'
 
 Sequel.extension :migration
 
@@ -40,8 +41,9 @@ module EventStore
     @db
   end
 
-  def self.redis
-    @redis
+  def self.redis(hostname)
+    hash = Zlib::crc32(hostname)
+    @redis[hash % @redis.length]
   end
 
   def self.connect(*args)
@@ -49,7 +51,14 @@ module EventStore
   end
 
   def self.redis_connect(config_hash)
-    @redis ||= Redis.new(config_hash)
+    if config_hash["hosts"]
+      generic_config = config_hash["hosts"].reject { |k, _| k == "hosts" }
+      @redis = config_hash["hosts"].map { |hostname|
+        Redis.new(generic_config.merge("host" => hostname))
+      }
+    else
+      @redis ||= [Redis.new(config_hash)]
+    end
   end
 
   def self.local_redis_config
@@ -103,7 +112,7 @@ module EventStore
     return unless connected?
     EventStore.db.from(fully_qualified_table).delete
     EventStore.db.from(fully_qualified_names_table).delete
-    EventStore.redis.flushdb
+    @redis.map(&:flushdb)
   end
 
   def self.postgres(environment = 'test', table_name = 'events', schema = 'event_store_test')
@@ -142,14 +151,14 @@ module EventStore
 
   def self.custom_config(database_config, redis_config, table_name = 'events', environment = 'production')
     self.redis_connect(redis_config)
-    database_config = database_config.inject({}) {|memo, (k,v)| memo[k.to_s] = v; memo}
-    redis_config    = redis_config.inject({}) {|memo, (k,v)| memo[k.to_s] = v; memo}
+    database_config = database_config.each_with_object({}) {|(k,v), memo| memo[k.to_s] = v}
+    redis_config    = redis_config.each_with_object({}) {|(k,v), memo| memo[k.to_s] = v}
 
-    @adapter        = database_config["adapter"].to_s
-    @environment    = environment
-    @db_config      = database_config
-    @table_name     = table_name
-    @schema         = database_config["schema"].to_s
+    @adapter         = database_config["adapter"].to_s
+    @environment     = environment
+    @db_config       = database_config
+    @table_name      = table_name
+    @schema          = database_config["schema"].to_s
     @use_names_table = database_config.fetch("use_names_table", true)
     connect_db
   end
@@ -168,7 +177,7 @@ module EventStore
 
   def self.create_db
     connect_db
-    table = "#{schema}__schema_info".to_sym
+    table = Sequel.qualify(schema, "schema_info")
     @db.run("CREATE SCHEMA IF NOT EXISTS #{schema}")
     Sequel::Migrator.run(@db, File.expand_path(File.join('..','..','db', self.migrations_dir), __FILE__), table: table)
   end

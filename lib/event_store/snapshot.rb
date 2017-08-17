@@ -8,7 +8,7 @@ module EventStore
 
     def initialize aggregate
       @aggregate = aggregate
-      @redis = EventStore.redis
+      @redis = EventStore.redis(aggregate.id)
       @snapshot_table = "#{@aggregate.type}_snapshots_for_#{@aggregate.id}"
       @snapshot_event_id_table = "#{@aggregate.type}_snapshot_event_ids_for_#{@aggregate.id}"
     end
@@ -65,7 +65,7 @@ module EventStore
     end
 
     def delete_snapshot!
-      EventStore.redis.del [snapshot_table, snapshot_event_id_table]
+      @redis.del [snapshot_table, snapshot_event_id_table]
     end
 
     def store_snapshot(prepared_events, logger=default_logger)

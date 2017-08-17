@@ -3,7 +3,7 @@ require "mock_redis"
 
 module EventStore
   describe Snapshot do
-    let(:redis)            { EventStore.redis }
+    let(:redis)            { EventStore.redis("") } # there's only one in test env anyway
     let(:aggregate_type)   { "awesome" }
     let(:aggregate_id)     { "superman" }
     let(:events)           { [] }

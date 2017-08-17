@@ -9,8 +9,8 @@ module EventStore
       @id = @aggregate.id
       @checkpoint_events = aggregate.checkpoint_events
       @event_table_alias = "events"
-      @event_table = "#{EventStore.schema}__#{EventStore.table_name}".to_sym
-      @aliased_event_table = "#{event_table}___#{@event_table_alias}".to_sym
+      @event_table = Sequel.qualify(EventStore.schema, EventStore.table_name)
+      @aliased_event_table = event_table.as(@event_table_alias)
       @names_table = EventStore.fully_qualified_names_table
     end
 
@@ -57,7 +57,7 @@ module EventStore
         begin
           query = EventStore.db.from(@aliased_event_table).where(:aggregate_id => @id.to_s)
           query = query.join(@names_table, id: :fully_qualified_name_id) if EventStore.use_names_table?
-          query = query.order("#{@event_table_alias}__id".to_sym).select_all(:events)
+          query = query.order { events[:id] }.select_all(:events)
           query = query.select_append(:fully_qualified_name) if EventStore.use_names_table?
           query
         end
@@ -75,7 +75,7 @@ module EventStore
       end
 
       if last_checkpoint
-        events.where{ events__id >= last_checkpoint[:id].to_i }
+        events.where{ events[:id] >= last_checkpoint[:id].to_i }
       else
         events
       end
@@ -83,7 +83,7 @@ module EventStore
 
     def events_from(event_id, max = nil)
       # note: this depends on the events table being aliased to "events" above.
-      events.limit(max).where{events__id >= event_id.to_i }.all.map do |event|
+      events.limit(max).where{events[:id] >= event_id.to_i }.all.map do |event|
         event[:serialized_event] = EventStore.unescape_bytea(event[:serialized_event])
         event
       end
@@ -107,8 +107,8 @@ module EventStore
       timestampz = start_time.strftime("%Y-%m-%d %H:%M:%S%z")
 
       rows = fully_qualified_names.inject([]) { |memo, name|
-        memo + events.where(events__id: events.where(fully_qualified_name: name).where { occurred_at < timestampz }
-                 .select { max(:events__id) }.unordered.group(:sub_key)).all
+        memo + events.where(Sequel.qualify("events", "id") => events.where(fully_qualified_name: name).where { occurred_at < timestampz }
+                 .select { max(events[:id]) }.unordered.group(:sub_key)).all
       }.sort_by { |r| r[:occurred_at] }
 
       rows.map {|r| r[:serialized_event] = EventStore.unescape_bytea(r[:serialized_event]); r}
