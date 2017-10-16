@@ -49,21 +49,6 @@ module EventStore
           snapshot_events.find { |event| event[:fully_qualified_name] == 'after_checkpoint_2' }
         ).not_to be_nil
       end
-
-      it "raises an exception if multiple event types are returned" do
-        event = EventStore::Event.new(aggregate_id,
-                                      (event_time - 1000).utc,
-                                      "checkpoint_event_1",
-                                      "zone",
-                                      "#{1001.to_s(2)}_foo")
-
-        event_stream.append [event], logger
-
-        expect { event_stream.snapshot_events }.to raise_error do |error|
-          expect(error).to be_a(RuntimeError)
-          expect(error.message).to eql("unexpected multiple checkpoint event types")
-        end
-      end
     end
   end
 end

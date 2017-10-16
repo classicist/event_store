@@ -68,10 +68,8 @@ module EventStore
 
       if checkpoint_events
         checkpoints = last_event_before(Time.now.utc, checkpoint_events)
-        if checkpoints.map { |e| e[:fully_qualified_name] }.uniq.length > 1
-          raise "unexpected multiple checkpoint event types"
-        end
-        last_checkpoint = checkpoints.last
+
+        last_checkpoint = checkpoints.first # start at the earliest possible place
       end
 
       if last_checkpoint
