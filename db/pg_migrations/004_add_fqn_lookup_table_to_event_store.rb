@@ -2,11 +2,11 @@ require 'event_store'
 Sequel.migration do
   no_transaction
 
-  event_store_table = (EventStore.schema + "__" + EventStore.table_name).to_sym
-  lookup_table =      (EventStore.schema + "__" + EventStore.lookup_table_name).to_sym
+  event_store_table = Sequel.qualify(EventStore.schema, EventStore.table_name)
+  lookup_table =      Sequel.qualify(EventStore.schema, EventStore.lookup_table_name)
 
-  event_store_table_name = event_store_table.to_s.gsub(/__/, '.')
-  lookup_table_name      = lookup_table.to_s.gsub(/__/, '.')
+  event_store_table_name = EventStore.schema + '.' + EventStore.table_name
+  lookup_table_name      = EventStore.schema + '.' + EventStore.lookup_table_name
 
   up do
     create_table(lookup_table) do
