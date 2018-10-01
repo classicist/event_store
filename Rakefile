@@ -13,3 +13,13 @@ desc "Run the performance benchmarks on the performance db"
 task :benchmark do
   sh 'bundle exec ruby spec/benchmark/bench.rb'
 end
+
+desc "migrate db"
+task :'db:migrate' do
+  begin
+    sh 'createdb history_store'
+  rescue
+    #we don't care if it exists already, so don't fail
+  end
+  sh 'psql history_store < db/setup_db_user.sql'
+end
