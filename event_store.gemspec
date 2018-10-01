@@ -18,15 +18,15 @@ Gem::Specification.new do |spec|
   spec.test_files    = spec.files.grep(%r{^(test|spec|features)/})
   spec.require_paths = ["lib"]
 
-  spec.add_development_dependency "bundler", "~> 1.9"
-  spec.add_development_dependency "rake", "~> 10.0"
-  spec.add_development_dependency "rspec", "~> 3.2"
+  spec.add_development_dependency "bundler", "~> 1.16"
+  spec.add_development_dependency "rake", "~> 12.0"
+  spec.add_development_dependency "rspec", "~> 3.8"
   spec.add_development_dependency "guard-rspec", "~> 4.5"
   spec.add_development_dependency "byebug", "~> 5.0"
   spec.add_development_dependency "mock_redis", "~> 0.13"
 
-  spec.add_dependency "sequel", "~> 4.14"
-  spec.add_dependency "sequel-vertica", "~> 0.2"
+  spec.add_dependency "sequel", "~> 4.49"
+  spec.add_dependency "sequel-vertica", "~> 0.3"
   spec.add_dependency "pg", "~> 0.17"
   spec.add_dependency "redis", "~> 3.1"
   spec.add_dependency "hiredis", "~> 0.5"
